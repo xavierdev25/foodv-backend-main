@@ -1,0 +1,14 @@
+package com.foodv.backend.domain.port.in.payment;
+
+import com.foodv.backend.domain.model.payment.Payment;
+
+import java.util.List;
+
+public interface FindPaymentUseCase {
+
+    Payment findById(Long id);
+
+    Payment findByOrderId(Long orderId);
+
+    List<Payment> findByUserId(Long userId);
+}
