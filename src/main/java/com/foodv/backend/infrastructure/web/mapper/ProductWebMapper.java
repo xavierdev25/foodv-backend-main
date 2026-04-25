@@ -1,0 +1,19 @@
+package com.foodv.backend.infrastructure.web.mapper;
+
+import com.foodv.backend.domain.model.product.Product;
+import com.foodv.backend.domain.port.in.product.CreateProductUseCase;
+import com.foodv.backend.domain.port.in.product.UpdateProductUseCase;
+import com.foodv.backend.infrastructure.web.dto.product.CreateProductRequest;
+import com.foodv.backend.infrastructure.web.dto.product.ProductResponse;
+import com.foodv.backend.infrastructure.web.dto.product.UpdateProductRequest;
+import org.mapstruct.Mapper;
+
+@Mapper(componentModel = "spring")
+public interface ProductWebMapper {
+
+    ProductResponse toResponse(Product product);
+
+    CreateProductUseCase.CreateProductCommand toCommand(CreateProductRequest request);
+
+    UpdateProductUseCase.UpdateProductCommand toCommand(UpdateProductRequest request);
+}
