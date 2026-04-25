@@ -1,0 +1,70 @@
+package com.foodv.backend.infrastructure.web.controller;
+
+import com.foodv.backend.domain.model.aula.Aula;
+import com.foodv.backend.domain.port.in.aula.CreateAulaUseCase;
+import com.foodv.backend.domain.port.in.aula.DeleteAulaUseCase;
+import com.foodv.backend.domain.port.in.aula.FindAulaUseCase;
+import com.foodv.backend.domain.port.in.aula.UpdateAulaUseCase;
+import com.foodv.backend.infrastructure.web.dto.aula.AulaResponse;
+import com.foodv.backend.infrastructure.web.dto.aula.CreateAulaRequest;
+import com.foodv.backend.infrastructure.web.dto.aula.UpdateAulaRequest;
+import com.foodv.backend.infrastructure.web.mapper.AulaWebMapper;
+import jakarta.validation.Valid;
+import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
+
+@RestController
+@RequestMapping("/aulas")
+@RequiredArgsConstructor
+public class AulaController {
+
+    private final CreateAulaUseCase createAulaUseCase;
+    private final FindAulaUseCase findAulaUseCase;
+    private final UpdateAulaUseCase updateAulaUseCase;
+    private final DeleteAulaUseCase deleteAulaUseCase;
+    private final AulaWebMapper mapper;
+
+    @PostMapping
+    public ResponseEntity<AulaResponse> create(@Valid @RequestBody CreateAulaRequest request) {
+        Aula aula = createAulaUseCase.execute(mapper.toCommand(request));
+        return ResponseEntity.status(HttpStatus.CREATED).body(mapper.toResponse(aula));
+    }
+
+    @GetMapping
+    public ResponseEntity<List<AulaResponse>> findAll() {
+        List<AulaResponse> responses = findAulaUseCase.findAll().stream()
+                .map(mapper::toResponse)
+                .toList();
+        return ResponseEntity.ok(responses);
+    }
+
+    @GetMapping("/activas")
+    public ResponseEntity<List<AulaResponse>> findAllActivas() {
+        List<AulaResponse> responses = findAulaUseCase.findAllActivas().stream()
+                .map(mapper::toResponse)
+                .toList();
+        return ResponseEntity.ok(responses);
+    }
+
+    @GetMapping("/{id}")
+    public ResponseEntity<AulaResponse> findById(@PathVariable Long id) {
+        Aula aula = findAulaUseCase.findById(id);
+        return ResponseEntity.ok(mapper.toResponse(aula));
+    }
+
+    @PutMapping("/{id}")
+    public ResponseEntity<AulaResponse> update(@PathVariable Long id, @Valid @RequestBody UpdateAulaRequest request) {
+        Aula aula = updateAulaUseCase.execute(id, mapper.toCommand(request));
+        return ResponseEntity.ok(mapper.toResponse(aula));
+    }
+
+    @DeleteMapping("/{id}")
+    public ResponseEntity<Void> delete(@PathVariable Long id) {
+        deleteAulaUseCase.execute(id);
+        return ResponseEntity.noContent().build();
+    }
+}

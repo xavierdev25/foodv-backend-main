@@ -1,0 +1,19 @@
+package com.foodv.backend.infrastructure.persistence.adapter;
+
+import com.foodv.backend.domain.model.order.Order;
+import com.foodv.backend.domain.model.order.OrderItem;
+import com.foodv.backend.infrastructure.persistence.entity.OrderEntity;
+import com.foodv.backend.infrastructure.persistence.entity.OrderItemEntity;
+import org.mapstruct.Mapper;
+
+@Mapper(componentModel = "spring")
+public interface OrderEntityMapper {
+
+    OrderEntity toEntity(Order order);
+
+    Order toDomain(OrderEntity entity);
+
+    OrderItemEntity toItemEntity(OrderItem item);
+
+    OrderItem toItemDomain(OrderItemEntity entity);
+}
