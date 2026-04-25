@@ -101,3 +101,8 @@ cors:
   allowed-headers: "*"
   allow-credentials: true
   max-age: 3600
+
+# ── AI Service ─────────────────────────────
+ai:
+  service:
+    url: ${AI_SERVICE_URL:http://localhost:8001}

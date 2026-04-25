@@ -1,0 +1,18 @@
+package com.foodv.backend.domain.model.ai;
+
+import lombok.Builder;
+import lombok.Getter;
+
+import java.math.BigDecimal;
+import java.util.List;
+
+@Getter
+@Builder
+public class AiRecommendationResponse {
+
+    private Long userId;
+    private List<ProductRecommendation> recommendations;
+    private String generatedBy;
+
+    public record ProductRecommendation(Long productId, String nombre, BigDecimal precio, String categoria, double score, String reason) {}
+}
