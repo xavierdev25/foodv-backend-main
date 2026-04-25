@@ -1,8 +1,10 @@
 package com.foodv.backend.application.order;
 
+import com.foodv.backend.domain.model.notification.NotificationEvent;
 import com.foodv.backend.domain.model.order.Order;
 import com.foodv.backend.domain.model.order.OrderStatus;
 import com.foodv.backend.domain.port.in.order.UpdateOrderStatusUseCase;
+import com.foodv.backend.domain.port.out.NotificationPort;
 import com.foodv.backend.domain.port.out.OrderRepositoryPort;
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
@@ -15,6 +17,7 @@ import java.time.LocalDateTime;
 public class UpdateOrderStatusHandler implements UpdateOrderStatusUseCase {
 
     private final OrderRepositoryPort orderRepositoryPort;
+    private final NotificationPort notificationPort;
 
     @Override
     public Order execute(Long orderId, OrderStatus newStatus) {
@@ -38,6 +41,21 @@ public class UpdateOrderStatusHandler implements UpdateOrderStatusUseCase {
                 .actualizadoEn(LocalDateTime.now())
                 .build();
 
-        return orderRepositoryPort.save(order);
+        Order updatedOrder = orderRepositoryPort.save(order);
+
+        NotificationEvent event = NotificationEvent.builder()
+                .type("ORDER_STATUS_CHANGED")
+                .orderId(updatedOrder.getId())
+                .userId(updatedOrder.getUserId())
+                .storeId(updatedOrder.getStoreId())
+                .message("Tu orden cambió de estado a: " + newStatus.name())
+                .payload(updatedOrder)
+                .timestamp(LocalDateTime.now())
+                .build();
+        notificationPort.notifyUser(updatedOrder.getUserId(), event);
+        notificationPort.notifyStore(updatedOrder.getStoreId(), event);
+        notificationPort.notifyOrderUpdate(updatedOrder.getId(), event);
+
+        return updatedOrder;
     }
 }

@@ -1,8 +1,10 @@
 package com.foodv.backend.application.order;
 
+import com.foodv.backend.domain.model.notification.NotificationEvent;
 import com.foodv.backend.domain.model.order.Order;
 import com.foodv.backend.domain.model.order.OrderStatus;
 import com.foodv.backend.domain.port.in.order.CancelOrderUseCase;
+import com.foodv.backend.domain.port.out.NotificationPort;
 import com.foodv.backend.domain.port.out.OrderRepositoryPort;
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
@@ -15,6 +17,7 @@ import java.time.LocalDateTime;
 public class CancelOrderHandler implements CancelOrderUseCase {
 
     private final OrderRepositoryPort orderRepositoryPort;
+    private final NotificationPort notificationPort;
 
     @Override
     public Order execute(Long orderId) {
@@ -38,6 +41,21 @@ public class CancelOrderHandler implements CancelOrderUseCase {
                 .actualizadoEn(LocalDateTime.now())
                 .build();
 
-        return orderRepositoryPort.save(order);
+        Order cancelledOrder = orderRepositoryPort.save(order);
+
+        NotificationEvent event = NotificationEvent.builder()
+                .type("ORDER_CANCELLED")
+                .orderId(cancelledOrder.getId())
+                .userId(cancelledOrder.getUserId())
+                .storeId(cancelledOrder.getStoreId())
+                .message("Tu orden ha sido cancelada")
+                .payload(cancelledOrder)
+                .timestamp(LocalDateTime.now())
+                .build();
+        notificationPort.notifyUser(cancelledOrder.getUserId(), event);
+        notificationPort.notifyStore(cancelledOrder.getStoreId(), event);
+        notificationPort.notifyOrderUpdate(cancelledOrder.getId(), event);
+
+        return cancelledOrder;
     }
 }
