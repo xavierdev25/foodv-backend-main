@@ -5,6 +5,8 @@ import com.foodv.backend.domain.model.product.ProductCategory;
 import com.foodv.backend.domain.port.out.ProductRepositoryPort;
 import com.foodv.backend.infrastructure.persistence.repository.ProductJpaRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Component;
 
 import java.util.List;
@@ -50,5 +52,15 @@ public class ProductRepositoryAdapter implements ProductRepositoryPort {
     @Override
     public void deleteById(Long id) {
         jpaRepository.deleteById(id);
+    }
+
+    @Override
+    public Page<Product> findAllPaginated(Pageable pageable) {
+        return jpaRepository.findAll(pageable).map(mapper::toDomain);
+    }
+
+    @Override
+    public Page<Product> findByStoreIdPaginated(Long storeId, Pageable pageable) {
+        return jpaRepository.findByStoreId(storeId, pageable).map(mapper::toDomain);
     }
 }

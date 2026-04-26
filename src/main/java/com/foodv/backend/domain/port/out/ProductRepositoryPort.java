@@ -2,6 +2,8 @@ package com.foodv.backend.domain.port.out;
 
 import com.foodv.backend.domain.model.product.Product;
 import com.foodv.backend.domain.model.product.ProductCategory;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 
 import java.util.List;
 import java.util.Optional;
@@ -21,4 +23,8 @@ public interface ProductRepositoryPort {
     List<Product> findAll();
 
     void deleteById(Long id);
+
+    Page<Product> findAllPaginated(Pageable pageable);
+
+    Page<Product> findByStoreIdPaginated(Long storeId, Pageable pageable);
 }

@@ -6,6 +6,8 @@ import com.foodv.backend.domain.port.in.product.FindProductUseCase;
 import com.foodv.backend.domain.port.out.ProductRepositoryPort;
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -40,5 +42,15 @@ public class FindProductHandler implements FindProductUseCase {
     @Override
     public List<Product> findAll() {
         return productRepositoryPort.findAll();
+    }
+
+    @Override
+    public Page<Product> findAllPaginated(Pageable pageable) {
+        return productRepositoryPort.findAllPaginated(pageable);
+    }
+
+    @Override
+    public Page<Product> findByStoreIdPaginated(Long storeId, Pageable pageable) {
+        return productRepositoryPort.findByStoreIdPaginated(storeId, pageable);
     }
 }
