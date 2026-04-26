@@ -3,11 +3,11 @@ package com.foodv.backend.infrastructure.web.controller;
 import com.foodv.backend.domain.port.in.auth.LoginUseCase;
 import com.foodv.backend.domain.port.in.auth.RefreshTokenUseCase;
 import com.foodv.backend.domain.port.in.auth.RegisterUseCase;
+import com.foodv.backend.infrastructure.persistence.repository.RefreshTokenRepository;
 import com.foodv.backend.infrastructure.web.dto.auth.AuthResponse;
 import com.foodv.backend.infrastructure.web.dto.auth.LoginRequest;
 import com.foodv.backend.infrastructure.web.dto.auth.RegisterRequest;
 import jakarta.validation.Valid;
-import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -18,12 +18,22 @@ import java.util.Map;
 
 @RestController
 @RequestMapping("/auth")
-@RequiredArgsConstructor
 public class AuthController {
 
     private final LoginUseCase loginUseCase;
     private final RegisterUseCase registerUseCase;
     private final RefreshTokenUseCase refreshTokenUseCase;
+    private final RefreshTokenRepository refreshTokenRepository;
+
+    public AuthController(LoginUseCase loginUseCase,
+                          RegisterUseCase registerUseCase,
+                          RefreshTokenUseCase refreshTokenUseCase,
+                          RefreshTokenRepository refreshTokenRepository) {
+        this.loginUseCase = loginUseCase;
+        this.registerUseCase = registerUseCase;
+        this.refreshTokenUseCase = refreshTokenUseCase;
+        this.refreshTokenRepository = refreshTokenRepository;
+    }
 
     @PostMapping("/login")
     public ResponseEntity<AuthResponse> login(@Valid @RequestBody LoginRequest request) {
@@ -60,5 +70,18 @@ public class AuthController {
                 result.tokenType(),
                 result.expiresIn()
         ));
+    }
+
+    @PostMapping("/logout")
+    public ResponseEntity<Map<String, String>> logout(
+            @RequestBody Map<String, String> body) {
+        String refreshToken = body.get("refreshToken");
+        if (refreshToken != null) {
+            refreshTokenRepository.findByToken(refreshToken).ifPresent(token -> {
+                token.setRevoked(true);
+                refreshTokenRepository.save(token);
+            });
+        }
+        return ResponseEntity.ok(Map.of("message", "Sesión cerrada exitosamente"));
     }
 }

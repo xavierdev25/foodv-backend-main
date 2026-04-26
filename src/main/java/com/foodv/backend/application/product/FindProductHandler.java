@@ -6,6 +6,7 @@ import com.foodv.backend.domain.port.in.product.FindProductUseCase;
 import com.foodv.backend.domain.port.out.ProductRepositoryPort;
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
@@ -25,6 +26,7 @@ public class FindProductHandler implements FindProductUseCase {
     }
 
     @Override
+    @Cacheable(value = "products", key = "#storeId")
     public List<Product> findByStoreId(Long storeId) {
         return productRepositoryPort.findByStoreId(storeId);
     }
@@ -40,6 +42,7 @@ public class FindProductHandler implements FindProductUseCase {
     }
 
     @Override
+    @Cacheable("products")
     public List<Product> findAll() {
         return productRepositoryPort.findAll();
     }

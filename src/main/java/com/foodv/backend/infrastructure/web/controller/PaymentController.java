@@ -8,7 +8,7 @@ import com.foodv.backend.infrastructure.web.dto.payment.CreatePaymentRequest;
 import com.foodv.backend.infrastructure.web.dto.payment.PaymentResponse;
 import com.foodv.backend.infrastructure.web.mapper.PaymentWebMapper;
 import jakarta.validation.Valid;
-import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -18,13 +18,25 @@ import java.util.Map;
 
 @RestController
 @RequestMapping("/payments")
-@RequiredArgsConstructor
 public class PaymentController {
 
     private final CreatePaymentUseCase createPaymentUseCase;
     private final FindPaymentUseCase findPaymentUseCase;
     private final ProcessWebhookUseCase processWebhookUseCase;
     private final PaymentWebMapper mapper;
+
+    @Value("${MERCADOPAGO_WEBHOOK_SECRET:}")
+    private String webhookSecret;
+
+    public PaymentController(CreatePaymentUseCase createPaymentUseCase,
+                             FindPaymentUseCase findPaymentUseCase,
+                             ProcessWebhookUseCase processWebhookUseCase,
+                             PaymentWebMapper mapper) {
+        this.createPaymentUseCase = createPaymentUseCase;
+        this.findPaymentUseCase = findPaymentUseCase;
+        this.processWebhookUseCase = processWebhookUseCase;
+        this.mapper = mapper;
+    }
 
     @PostMapping
     public ResponseEntity<PaymentResponse> create(@Valid @RequestBody CreatePaymentRequest request) {
@@ -52,21 +64,61 @@ public class PaymentController {
         return ResponseEntity.ok(responses);
     }
 
-    @SuppressWarnings("unchecked")
     @PostMapping("/webhook")
-    public ResponseEntity<Void> webhook(@RequestBody Map<String, Object> payload) {
-        Map<String, Object> data = (Map<String, Object>) payload.get("data");
-        String externalId = data != null ? String.valueOf(data.get("id")) : null;
-        String action = String.valueOf(payload.get("action"));
+    public ResponseEntity<Void> webhook(
+            @RequestBody String rawBody,
+            @RequestHeader(value = "x-signature", required = false) String signature,
+            @RequestHeader(value = "x-request-id", required = false) String requestId,
+            @RequestParam(value = "data.id", required = false) String dataId) {
 
-        ProcessWebhookUseCase.WebhookEvent event = new ProcessWebhookUseCase.WebhookEvent(
-                externalId,
-                action,
-                null
-        );
+        // Verificar firma si el secret está configurado
+        if (webhookSecret != null && !webhookSecret.isBlank() && signature != null) {
+            String expectedSignature = computeHmac(dataId, requestId);
+            if (!signature.contains(expectedSignature)) {
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+            }
+        }
 
-        processWebhookUseCase.execute(event);
-
+        try {
+            Map<String, Object> payload = new com.fasterxml.jackson.databind.ObjectMapper()
+                    .readValue(rawBody, new com.fasterxml.jackson.core.type.TypeReference<Map<String, Object>>() {});
+            Object dataObj = payload.get("data");
+            String externalId = null;
+            if (dataObj instanceof Map<?, ?> dataMap) {
+                Object idObj = dataMap.get("id");
+                externalId = idObj != null ? idObj.toString() : null;
+            }
+            String action = (String) payload.get("action");
+            if (externalId != null) {
+                processWebhookUseCase.execute(
+                    new ProcessWebhookUseCase.WebhookEvent(externalId, action, null)
+                );
+            }
+        } catch (Exception e) {
+            // Siempre retornar 200 a MercadoPago aunque falle el procesamiento
+        }
         return ResponseEntity.ok().build();
     }
+
+    private String computeHmac(String dataId, String requestId) {
+        try {
+            String message = "id:" + dataId + ";request-id:" + requestId + ";";
+            javax.crypto.Mac mac = javax.crypto.Mac.getInstance("HmacSHA256");
+            javax.crypto.spec.SecretKeySpec secretKey =
+                new javax.crypto.spec.SecretKeySpec(
+                    webhookSecret.getBytes(java.nio.charset.StandardCharsets.UTF_8),
+                    "HmacSHA256"
+                );
+            mac.init(secretKey);
+            byte[] hash = mac.doFinal(message.getBytes(java.nio.charset.StandardCharsets.UTF_8));
+            StringBuilder sb = new StringBuilder();
+            for (byte b : hash) {
+                sb.append(String.format("%02x", b));
+            }
+            return sb.toString();
+        } catch (Exception e) {
+            return "";
+        }
+    }
 }
+
