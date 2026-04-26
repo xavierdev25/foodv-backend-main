@@ -1,0 +1,14 @@
+meta {
+  name: Listar Productos
+  type: http
+  seq: 1
+}
+
+get {
+  url: {{baseUrl}}/products?page=0&size=20&sortBy=nombre
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{accessToken}}
+}

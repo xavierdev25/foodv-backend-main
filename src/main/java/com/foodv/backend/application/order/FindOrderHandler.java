@@ -6,6 +6,8 @@ import com.foodv.backend.domain.port.in.order.FindOrderUseCase;
 import com.foodv.backend.domain.port.out.OrderRepositoryPort;
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -40,5 +42,20 @@ public class FindOrderHandler implements FindOrderUseCase {
     @Override
     public List<Order> findAll() {
         return orderRepositoryPort.findAll();
+    }
+
+    @Override
+    public Page<Order> findAllPaginated(Pageable pageable) {
+        return orderRepositoryPort.findAllPaginated(pageable);
+    }
+
+    @Override
+    public Page<Order> findByUserIdPaginated(Long userId, Pageable pageable) {
+        return orderRepositoryPort.findByUserIdPaginated(userId, pageable);
+    }
+
+    @Override
+    public Page<Order> findByStoreIdPaginated(Long storeId, Pageable pageable) {
+        return orderRepositoryPort.findByStoreIdPaginated(storeId, pageable);
     }
 }

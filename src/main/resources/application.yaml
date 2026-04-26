@@ -50,6 +50,16 @@ spring:
       max-file-size: 10MB
       max-request-size: 10MB
 
+  # ── Redis Cache ────────────────────────────
+  data:
+    redis:
+      host: ${REDIS_HOST:localhost}
+      port: ${REDIS_PORT:6379}
+  cache:
+    type: redis
+    redis:
+      time-to-live: 300000
+
 # ── Server ─────────────────────────────────
 server:
   port: ${SERVER_PORT:8080}
@@ -91,8 +101,9 @@ logging:
     org.springframework.security: INFO
     org.hibernate.SQL: ${HIBERNATE_LOG_LEVEL:WARN}
     org.hibernate.type.descriptor.sql.BasicBinder: ${HIBERNATE_LOG_LEVEL:WARN}
+    org.flywaydb: INFO
   pattern:
-    console: "%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n"
+    console: "%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level %logger{36} [%X{requestId}] - %msg%n"
 
 # ── CORS ───────────────────────────────────
 cors:
@@ -106,3 +117,27 @@ cors:
 ai:
   service:
     url: ${AI_SERVICE_URL:http://localhost:8001}
+
+# ── SpringDoc / Swagger ────────────────────
+springdoc:
+  swagger-ui:
+    path: /swagger-ui.html
+    tags-sorter: alpha
+  api-docs:
+    path: /api-docs
+
+# ── Actuator ───────────────────────────────
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics
+      base-path: /actuator
+  endpoint:
+    health:
+      show-details: when-authorized
+  info:
+    app:
+      name: FoodV Backend
+      version: 1.0.0
+      description: Sistema de delivery universitario

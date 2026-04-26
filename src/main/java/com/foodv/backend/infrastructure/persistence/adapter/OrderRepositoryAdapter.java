@@ -5,6 +5,8 @@ import com.foodv.backend.domain.model.order.OrderStatus;
 import com.foodv.backend.domain.port.out.OrderRepositoryPort;
 import com.foodv.backend.infrastructure.persistence.repository.OrderJpaRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Component;
 
 import java.util.List;
@@ -45,5 +47,20 @@ public class OrderRepositoryAdapter implements OrderRepositoryPort {
     @Override
     public List<Order> findAll() {
         return jpaRepository.findAll().stream().map(mapper::toDomain).toList();
+    }
+
+    @Override
+    public Page<Order> findAllPaginated(Pageable pageable) {
+        return jpaRepository.findAll(pageable).map(mapper::toDomain);
+    }
+
+    @Override
+    public Page<Order> findByUserIdPaginated(Long userId, Pageable pageable) {
+        return jpaRepository.findByUserId(userId, pageable).map(mapper::toDomain);
+    }
+
+    @Override
+    public Page<Order> findByStoreIdPaginated(Long storeId, Pageable pageable) {
+        return jpaRepository.findByStoreId(storeId, pageable).map(mapper::toDomain);
     }
 }

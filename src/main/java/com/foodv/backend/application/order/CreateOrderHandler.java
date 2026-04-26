@@ -88,6 +88,27 @@ public class CreateOrderHandler implements CreateOrderUseCase {
                 .actualizadoEn(LocalDateTime.now())
                 .build();
 
-        return orderRepositoryPort.save(order);
+        Order savedOrder = orderRepositoryPort.save(order);
+
+        savedOrder.getItems().forEach(item ->
+            productRepositoryPort.findById(item.getProductId()).ifPresent(product -> {
+                Product updatedProduct = Product.builder()
+                    .id(product.getId())
+                    .nombre(product.getNombre())
+                    .descripcion(product.getDescripcion())
+                    .precio(product.getPrecio())
+                    .stock(product.getStock() - item.getCantidad())
+                    .imagenUrl(product.getImagenUrl())
+                    .categoria(product.getCategoria())
+                    .storeId(product.getStoreId())
+                    .activo(product.isActivo())
+                    .disponible(product.getStock() - item.getCantidad() > 0)
+                    .creadoEn(product.getCreadoEn())
+                    .build();
+                productRepositoryPort.save(updatedProduct);
+            })
+        );
+
+        return savedOrder;
     }
 }

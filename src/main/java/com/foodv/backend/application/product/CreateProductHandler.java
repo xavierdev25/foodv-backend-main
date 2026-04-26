@@ -7,6 +7,7 @@ import com.foodv.backend.domain.port.out.ProductRepositoryPort;
 import com.foodv.backend.domain.port.out.StoreRepositoryPort;
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
+import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
@@ -19,6 +20,7 @@ public class CreateProductHandler implements CreateProductUseCase {
     private final StoreRepositoryPort storeRepositoryPort;
 
     @Override
+    @CacheEvict(value = "products", allEntries = true)
     public Product execute(CreateProductCommand command) {
         Store store = storeRepositoryPort.findById(command.storeId())
                 .orElseThrow(() -> new EntityNotFoundException("Tienda no encontrada"));

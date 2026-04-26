@@ -14,6 +14,7 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.data.domain.*;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -36,11 +37,13 @@ public class OrderController {
     }
 
     @GetMapping
-    public ResponseEntity<List<OrderResponse>> findAll() {
-        List<OrderResponse> responses = findOrderUseCase.findAll().stream()
-                .map(mapper::toResponse)
-                .toList();
-        return ResponseEntity.ok(responses);
+    public ResponseEntity<Page<OrderResponse>> findAll(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "20") int size,
+            @RequestParam(defaultValue = "id") String sortBy
+    ) {
+        Pageable pageable = PageRequest.of(page, size, Sort.by(sortBy));
+        return ResponseEntity.ok(findOrderUseCase.findAllPaginated(pageable).map(mapper::toResponse));
     }
 
     @GetMapping("/{id}")
@@ -50,19 +53,25 @@ public class OrderController {
     }
 
     @GetMapping("/user/{userId}")
-    public ResponseEntity<List<OrderResponse>> findByUserId(@PathVariable Long userId) {
-        List<OrderResponse> responses = findOrderUseCase.findByUserId(userId).stream()
-                .map(mapper::toResponse)
-                .toList();
-        return ResponseEntity.ok(responses);
+    public ResponseEntity<Page<OrderResponse>> findByUserId(
+            @PathVariable Long userId,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "20") int size,
+            @RequestParam(defaultValue = "id") String sortBy
+    ) {
+        Pageable pageable = PageRequest.of(page, size, Sort.by(sortBy));
+        return ResponseEntity.ok(findOrderUseCase.findByUserIdPaginated(userId, pageable).map(mapper::toResponse));
     }
 
     @GetMapping("/store/{storeId}")
-    public ResponseEntity<List<OrderResponse>> findByStoreId(@PathVariable Long storeId) {
-        List<OrderResponse> responses = findOrderUseCase.findByStoreId(storeId).stream()
-                .map(mapper::toResponse)
-                .toList();
-        return ResponseEntity.ok(responses);
+    public ResponseEntity<Page<OrderResponse>> findByStoreId(
+            @PathVariable Long storeId,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "20") int size,
+            @RequestParam(defaultValue = "id") String sortBy
+    ) {
+        Pageable pageable = PageRequest.of(page, size, Sort.by(sortBy));
+        return ResponseEntity.ok(findOrderUseCase.findByStoreIdPaginated(storeId, pageable).map(mapper::toResponse));
     }
 
     @GetMapping("/status/{status}")

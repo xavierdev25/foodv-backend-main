@@ -14,7 +14,10 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.data.domain.*;
 import org.springframework.web.bind.annotation.*;
+import com.foodv.backend.domain.model.product.ProductCategory;
+import java.math.BigDecimal;
 
 import java.util.List;
 
@@ -36,11 +39,13 @@ public class ProductController {
     }
 
     @GetMapping
-    public ResponseEntity<List<ProductResponse>> findAll() {
-        List<ProductResponse> responses = findProductUseCase.findAll().stream()
-                .map(mapper::toResponse)
-                .toList();
-        return ResponseEntity.ok(responses);
+    public ResponseEntity<Page<ProductResponse>> findAll(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "20") int size,
+            @RequestParam(defaultValue = "id") String sortBy
+    ) {
+        Pageable pageable = PageRequest.of(page, size, Sort.by(sortBy));
+        return ResponseEntity.ok(findProductUseCase.findAllPaginated(pageable).map(mapper::toResponse));
     }
 
     @GetMapping("/{id}")
@@ -50,11 +55,14 @@ public class ProductController {
     }
 
     @GetMapping("/store/{storeId}")
-    public ResponseEntity<List<ProductResponse>> findByStoreId(@PathVariable Long storeId) {
-        List<ProductResponse> responses = findProductUseCase.findByStoreId(storeId).stream()
-                .map(mapper::toResponse)
-                .toList();
-        return ResponseEntity.ok(responses);
+    public ResponseEntity<Page<ProductResponse>> findByStoreId(
+            @PathVariable Long storeId,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "20") int size,
+            @RequestParam(defaultValue = "id") String sortBy
+    ) {
+        Pageable pageable = PageRequest.of(page, size, Sort.by(sortBy));
+        return ResponseEntity.ok(findProductUseCase.findByStoreIdPaginated(storeId, pageable).map(mapper::toResponse));
     }
 
     @GetMapping("/store/{storeId}/activos")
@@ -83,5 +91,23 @@ public class ProductController {
     public ResponseEntity<Void> delete(@PathVariable Long id) {
         deleteProductUseCase.execute(id);
         return ResponseEntity.noContent().build();
+    }
+
+    @GetMapping("/search")
+    public ResponseEntity<Page<ProductResponse>> search(
+            @RequestParam(required = false) String nombre,
+            @RequestParam(required = false) ProductCategory categoria,
+            @RequestParam(required = false) Long storeId,
+            @RequestParam(required = false) BigDecimal precioMin,
+            @RequestParam(required = false) BigDecimal precioMax,
+            @RequestParam(required = false) Boolean disponible,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "20") int size,
+            @RequestParam(defaultValue = "nombre") String sortBy) {
+        Pageable pageable = PageRequest.of(page, size, Sort.by(sortBy));
+        return ResponseEntity.ok(
+                findProductUseCase.search(nombre, categoria, storeId, precioMin, precioMax, disponible, pageable)
+                        .map(mapper::toResponse)
+        );
     }
 }

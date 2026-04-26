@@ -4,6 +4,7 @@ import com.foodv.backend.domain.model.order.Order;
 import com.foodv.backend.domain.model.order.OrderItem;
 import com.foodv.backend.infrastructure.persistence.entity.OrderEntity;
 import com.foodv.backend.infrastructure.persistence.entity.OrderItemEntity;
+import org.mapstruct.Mapping;
 import org.mapstruct.Mapper;
 
 @Mapper(componentModel = "spring")
@@ -13,6 +14,7 @@ public interface OrderEntityMapper {
 
     Order toDomain(OrderEntity entity);
 
+    @Mapping(target = "orderId", ignore = true)
     OrderItemEntity toItemEntity(OrderItem item);
 
     OrderItem toItemDomain(OrderItemEntity entity);

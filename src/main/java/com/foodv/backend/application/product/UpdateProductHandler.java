@@ -5,6 +5,7 @@ import com.foodv.backend.domain.port.in.product.UpdateProductUseCase;
 import com.foodv.backend.domain.port.out.ProductRepositoryPort;
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
+import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.stereotype.Service;
 
 @Service
@@ -14,6 +15,7 @@ public class UpdateProductHandler implements UpdateProductUseCase {
     private final ProductRepositoryPort productRepositoryPort;
 
     @Override
+    @CacheEvict(value = "products", allEntries = true)
     public Product execute(Long id, UpdateProductCommand command) {
         Product existing = productRepositoryPort.findById(id)
                 .orElseThrow(() -> new EntityNotFoundException("Producto no encontrado"));

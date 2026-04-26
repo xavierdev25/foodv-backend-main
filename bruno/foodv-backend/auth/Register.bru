@@ -1,0 +1,22 @@
+meta {
+  name: Register
+  type: http
+  seq: 2
+}
+
+post {
+  url: {{baseUrl}}/auth/register
+  body: json
+  auth: none
+}
+
+body:json {
+  {
+    "nombres": "Test",
+    "apellidos": "Usuario",
+    "email": "test@foodv.com",
+    "password": "TestPass123",
+    "telefono": "999999999",
+    "role": "ESTUDIANTE"
+  }
+}
