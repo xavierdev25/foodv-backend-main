@@ -97,6 +97,9 @@ jobs:
           distribution: 'temurin'
           cache: maven
 
+      - name: Dar permisos a mvnw
+        run: chmod +x mvnw
+
       - name: Build sin tests
         run: ./mvnw package -DskipTests --no-transfer-progress
 
