@@ -47,6 +47,9 @@ jobs:
           distribution: 'temurin'
           cache: maven
 
+      - name: Dar permisos a mvnw
+        run: chmod +x mvnw
+
       - name: Correr tests
         env:
           DB_HOST: localhost
