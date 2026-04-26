@@ -8,6 +8,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Component;
+import java.math.BigDecimal;
 
 import java.util.List;
 import java.util.Optional;
@@ -18,6 +19,14 @@ public class ProductRepositoryAdapter implements ProductRepositoryPort {
 
     private final ProductJpaRepository jpaRepository;
     private final ProductEntityMapper mapper;
+
+    @Override
+    public Page<Product> search(String nombre, ProductCategory categoria, Long storeId,
+                                BigDecimal precioMin, BigDecimal precioMax,
+                                Boolean disponible, Pageable pageable) {
+        return jpaRepository.search(nombre, categoria, storeId, precioMin, precioMax, disponible, pageable)
+                .map(mapper::toDomain);
+    }
 
     @Override
     public Product save(Product product) {

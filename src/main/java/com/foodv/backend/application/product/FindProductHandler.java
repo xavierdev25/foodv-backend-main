@@ -10,6 +10,7 @@ import org.springframework.cache.annotation.Cacheable;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
+import java.math.BigDecimal;
 
 import java.util.List;
 
@@ -55,5 +56,12 @@ public class FindProductHandler implements FindProductUseCase {
     @Override
     public Page<Product> findByStoreIdPaginated(Long storeId, Pageable pageable) {
         return productRepositoryPort.findByStoreIdPaginated(storeId, pageable);
+    }
+
+    @Override
+    public Page<Product> search(String nombre, ProductCategory categoria, Long storeId,
+                                BigDecimal precioMin, BigDecimal precioMax,
+                                Boolean disponible, Pageable pageable) {
+        return productRepositoryPort.search(nombre, categoria, storeId, precioMin, precioMax, disponible, pageable);
     }
 }

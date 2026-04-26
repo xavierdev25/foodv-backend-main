@@ -5,6 +5,10 @@ import com.foodv.backend.domain.model.product.ProductCategory;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 
+import java.math.BigDecimal;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+
 import java.util.List;
 import java.util.Optional;
 
@@ -27,4 +31,8 @@ public interface ProductRepositoryPort {
     Page<Product> findAllPaginated(Pageable pageable);
 
     Page<Product> findByStoreIdPaginated(Long storeId, Pageable pageable);
+
+    Page<Product> search(String nombre, ProductCategory categoria, Long storeId,
+                         BigDecimal precioMin, BigDecimal precioMax,
+                         Boolean disponible, Pageable pageable);
 }
