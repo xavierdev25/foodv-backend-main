@@ -1,0 +1,14 @@
+meta {
+  name: Listar Aulas
+  type: http
+  seq: 1
+}
+
+get {
+  url: {{baseUrl}}/aulas
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{accessToken}}
+}

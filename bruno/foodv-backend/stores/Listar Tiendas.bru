@@ -1,0 +1,14 @@
+meta {
+  name: Listar Tiendas
+  type: http
+  seq: 1
+}
+
+get {
+  url: {{baseUrl}}/stores
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{accessToken}}
+}

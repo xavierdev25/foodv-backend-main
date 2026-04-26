@@ -1,0 +1,36 @@
+meta {
+  name: Crear Orden
+  type: http
+  seq: 1
+}
+
+post {
+  url: {{baseUrl}}/orders
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{accessToken}}
+}
+
+body:json {
+  {
+    "userId": 1,
+    "storeId": 1,
+    "aulaId": 1,
+    "items": [
+      {
+        "productId": 1,
+        "cantidad": 2
+      }
+    ],
+    "notas": "Sin ají por favor"
+  }
+}
+
+script:after-response {
+  if (res.status === 201) {
+    bru.setEnvVar("orderId", res.body.id);
+  }
+}
