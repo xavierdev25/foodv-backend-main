@@ -6,6 +6,7 @@ import com.foodv.backend.infrastructure.persistence.entity.UserEntity;
 import com.foodv.backend.infrastructure.persistence.repository.UserJpaRepository;
 import org.springframework.stereotype.Component;
 
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 
@@ -29,13 +30,13 @@ public class UserRepositoryAdapter implements UserRepositoryPort {
 
     @Override
     public Optional<User> findById(Long id) {
-        return jpaRepository.findById(id)
+        return jpaRepository.findByIdAndDeletedAtIsNull(id)
                 .map(mapper::toDomain);
     }
 
     @Override
     public Optional<User> findByEmail(String email) {
-        return jpaRepository.findByEmail(email)
+        return jpaRepository.findByEmailAndDeletedAtIsNull(email)
                 .map(mapper::toDomain);
     }
 
@@ -46,7 +47,7 @@ public class UserRepositoryAdapter implements UserRepositoryPort {
 
     @Override
     public List<User> findAll() {
-        return jpaRepository.findAll()
+        return jpaRepository.findAllByDeletedAtIsNull()
                 .stream()
                 .map(mapper::toDomain)
                 .toList();
@@ -54,6 +55,14 @@ public class UserRepositoryAdapter implements UserRepositoryPort {
 
     @Override
     public void deleteById(Long id) {
-        jpaRepository.deleteById(id);
+        jpaRepository.findByIdAndDeletedAtIsNull(id).ifPresent(entity -> {
+            entity.setDeletedAt(LocalDateTime.now());
+            jpaRepository.save(entity);
+        });
+    }
+
+    @Override
+    public Optional<User> findByIdWithPreferences(Long id) {
+        return findById(id);
     }
 }

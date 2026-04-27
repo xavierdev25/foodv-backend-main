@@ -63,4 +63,9 @@ public class OrderRepositoryAdapter implements OrderRepositoryPort {
     public Page<Order> findByStoreIdPaginated(Long storeId, Pageable pageable) {
         return jpaRepository.findByStoreId(storeId, pageable).map(mapper::toDomain);
     }
+
+    @Override
+    public List<Order> findByUserIdAndStatus(Long userId, OrderStatus status) {
+        return jpaRepository.findByUserIdAndStatus(userId, status).stream().map(mapper::toDomain).toList();
+    }
 }

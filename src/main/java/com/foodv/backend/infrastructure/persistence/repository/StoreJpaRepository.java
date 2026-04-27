@@ -10,6 +10,10 @@ import java.util.Optional;
 @Repository
 public interface StoreJpaRepository extends JpaRepository<StoreEntity, Long> {
 
+    List<StoreEntity> findAllByDeletedAtIsNull();
+    Optional<StoreEntity> findByIdAndDeletedAtIsNull(Long id);
+    Optional<StoreEntity> findByOwnerIdAndDeletedAtIsNull(Long ownerId);
+
     Optional<StoreEntity> findByOwnerId(Long ownerId);
 
     boolean existsByOwnerId(Long ownerId);

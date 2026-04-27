@@ -11,6 +11,7 @@ import com.foodv.backend.domain.port.out.OrderRepositoryPort;
 import com.foodv.backend.domain.port.out.ProductRepositoryPort;
 import com.foodv.backend.domain.port.out.StoreRepositoryPort;
 import com.foodv.backend.domain.port.out.UserRepositoryPort;
+import com.foodv.backend.infrastructure.metrics.BusinessMetricsService;
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -29,6 +30,7 @@ public class CreateOrderHandler implements CreateOrderUseCase {
     private final UserRepositoryPort userRepositoryPort;
     private final StoreRepositoryPort storeRepositoryPort;
     private final AulaRepositoryPort aulaRepositoryPort;
+    private final BusinessMetricsService metricsService;
 
     @Override
     public Order execute(CreateOrderCommand command) {
@@ -108,6 +110,8 @@ public class CreateOrderHandler implements CreateOrderUseCase {
                 productRepositoryPort.save(updatedProduct);
             })
         );
+
+        metricsService.recordOrderCreated();
 
         return savedOrder;
     }

@@ -49,4 +49,7 @@ public class ProductEntity {
 
     @Column(name = "creado_en")
     private LocalDateTime creadoEn;
+
+    @Column(name = "deleted_at")
+    private LocalDateTime deletedAt;
 }

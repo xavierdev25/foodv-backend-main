@@ -9,6 +9,7 @@ import com.foodv.backend.domain.model.user.User;
 import com.foodv.backend.domain.model.user.UserRole;
 import com.foodv.backend.domain.port.in.order.CreateOrderUseCase;
 import com.foodv.backend.domain.port.out.*;
+import com.foodv.backend.infrastructure.metrics.BusinessMetricsService;
 import jakarta.persistence.EntityNotFoundException;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -36,6 +37,7 @@ class CreateOrderHandlerTest {
     @Mock private UserRepositoryPort userRepositoryPort;
     @Mock private StoreRepositoryPort storeRepositoryPort;
     @Mock private AulaRepositoryPort aulaRepositoryPort;
+    @Mock private BusinessMetricsService metricsService;
 
     @InjectMocks private CreateOrderHandler createOrderHandler;
 

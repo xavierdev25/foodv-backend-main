@@ -1,70 +1,127 @@
 # FoodV Backend
 
-Backend del sistema de delivery universitario FoodV, desarrollado con Spring Boot 4.x bajo Arquitectura Hexagonal (Ports & Adapters).
+Backend del sistema de delivery universitario FoodV. Desarrollado con Spring Boot 4.x bajo Arquitectura Hexagonal (Ports & Adapters) para la plataforma que conecta estudiantes con comercios dentro del campus de la Universidad César Vallejo.
+
+[![CI](https://github.com/TU_USUARIO/foodv-backend/actions/workflows/ci.yml/badge.svg)](https://github.com/TU_USUARIO/foodv-backend/actions/workflows/ci.yml)
+![Java](https://img.shields.io/badge/Java-21-orange)
+![Spring Boot](https://img.shields.io/badge/Spring%20Boot-4.0.6-green)
+![Tests](https://img.shields.io/badge/tests-30%20passing-brightgreen)
 
 ## Stack Tecnológico
 
-| Tecnología | Versión |
-|---|---|
-| Java | 21 |
-| Spring Boot | 4.0.6 |
-| PostgreSQL | 16 |
-| Redis | 7 |
-| Flyway | 11.14.1 |
-| Spring Security + JWT | 7.0.5 / 0.13.0 |
-| MercadoPago SDK | 2.9.2 |
-| Cloudinary SDK | 2.3.2 |
-| MapStruct | 1.6.3 |
-| Lombok | 1.18.46 |
-| Bucket4j | 8.10.1 |
-| SpringDoc OpenAPI | 2.8.8 |
-| Docker + Docker Compose | — |
+| Tecnología | Versión | Uso |
+|---|---|---|
+| Java | 21 | Lenguaje principal |
+| Spring Boot | 4.0.6 | Framework base |
+| PostgreSQL | 16 | Base de datos principal |
+| Redis | 7 | Caché y blacklist de tokens |
+| Flyway | 11.14.1 | Migraciones de BD |
+| Spring Security + JWT | 7.0.5 / 0.13.0 | Autenticación y autorización |
+| MercadoPago SDK | 2.9.2 | Pagos en línea |
+| Cloudinary SDK | 2.3.2 | Almacenamiento de imágenes |
+| Firebase Admin SDK | 9.4.2 | Push notifications |
+| Micrometer + Prometheus | — | Métricas de negocio |
+| Bucket4j | 8.10.1 | Rate limiting |
+| SpringDoc OpenAPI | 2.8.8 | Documentación interactiva |
+| MapStruct | 1.6.3 | Mapeo de objetos |
+| Lombok | 1.18.46 | Reducción de boilerplate |
+| Docker + Docker Compose | — | Contenedores |
 
 ## Arquitectura
 
 ```
 src/main/java/com/foodv/backend/
-├── domain/                  # Capa de dominio (sin dependencias de framework)
-│   ├── model/               # Entidades y Value Objects
+├── domain/                  # Núcleo — sin dependencias de framework
+│   ├── model/               # Entidades de dominio y enums
 │   ├── port/
 │   │   ├── in/              # Casos de uso (puertos de entrada)
-│   │   └── out/             # Repositorios y servicios externos (puertos de salida)
+│   │   └── out/             # Repositorios y servicios externos
 │   └── service/             # Lógica de negocio pura
 ├── application/             # Handlers — implementan los casos de uso
-└── infrastructure/          # Adaptadores (BD, web, pagos, IA, notificaciones)
+└── infrastructure/          # Adaptadores
     ├── persistence/         # JPA entities, repositories, adapters
     ├── web/                 # Controllers, DTOs, mappers
-    ├── payment/             # MercadoPago adapter
-    ├── notification/        # WebSocket adapter
-    ├── ai/                  # FastAPI AI service adapter
-    ├── storage/             # Cloudinary adapter
-    └── config/              # Spring Security, JWT, CORS, WebSocket, Flyway
+    ├── payment/             # Adaptador MercadoPago
+    ├── notification/        # Adaptador WebSocket
+    ├── ai/                  # Adaptador FastAPI AI Service
+    ├── storage/             # Adaptador Cloudinary
+    ├── metrics/             # BusinessMetricsService
+    ├── scheduler/           # Tareas programadas (cleanup)
+    ├── security/            # JWT filter, rate limiting, brute force
+    └── config/              # Spring Security, CORS, Firebase, WebSocket
 ```
 
 ## Módulos
 
 | Módulo | Descripción |
 |---|---|
-| `users` | Gestión de usuarios con roles ESTUDIANTE, REPARTIDOR, COMERCIO, ADMIN |
-| `auth` | Autenticación JWT — register, login, logout, refresh token |
-| `aulas` | Catálogo de aulas de la universidad |
+| `auth` | Registro, login, logout, refresh token con JWT |
+| `users` | Gestión de usuarios con preferencias gastronómicas y roles |
+| `aulas` | Catálogo de aulas universitarias |
 | `stores` | Tiendas de los comercios dentro del campus |
-| `products` | Catálogo de productos por tienda con búsqueda y filtros |
-| `orders` | Órdenes con máquina de estados: PENDIENTE → PREPARANDO → EN_CAMINO → ENTREGADO / CANCELADO |
-| `payment` | Integración con MercadoPago Checkout Pro |
-| `notification` | Notificaciones en tiempo real via WebSocket (STOMP) |
-| `ai` | Integración con microservicio de recomendaciones (FastAPI + phi3) |
+| `products` | Catálogo con búsqueda, filtros y caché Redis |
+| `orders` | Máquina de estados: PENDIENTE → PREPARANDO → EN_CAMINO → ENTREGADO |
+| `payments` | Integración MercadoPago Checkout Pro con webhook HMAC-SHA256 |
+| `ai` | Recomendaciones personalizadas + feedback de usuario |
 | `images` | Subida de imágenes a Cloudinary |
+| `notifications` | WebSocket STOMP + Firebase FCM (push notifications) |
 
 ## Seguridad
 
-- **JWT** con access token (24h) y refresh token (7 días) almacenado en BD
-- **RBAC** por endpoint — roles: ESTUDIANTE, REPARTIDOR, COMERCIO, ADMIN
-- **Rate Limiting** — 100 peticiones/minuto por usuario/IP con Bucket4j
-- **Brute Force Protection** — bloqueo de 15 minutos tras 5 intentos fallidos
-- **Headers de seguridad** — X-Content-Type-Options, X-Frame-Options, HSTS, CSP
+- **JWT** — access token (24h) + refresh token (7 días) con blacklist en Redis
+- **RBAC** — roles: `ESTUDIANTE`, `REPARTIDOR`, `COMERCIO`, `ADMIN`
+- **Rate Limiting diferenciado** — 100 req/min general, 5 req/min para IA
+- **Brute Force Protection** — bloqueo 15 min tras 5 intentos fallidos
+- **Security Headers** — X-Content-Type-Options, X-Frame-Options, HSTS, CSP
 - **Política de contraseñas** — mínimo 8 caracteres, mayúscula, minúscula y número
-- **Firma de webhook** — verificación HMAC-SHA256 para MercadoPago
+- **Webhook signature** — verificación HMAC-SHA256 para MercadoPago
+- **Soft Delete** — usuarios, productos y tiendas con `deleted_at`
+
+## Motor de IA
+
+El módulo de IA conecta con [foodv-ai-service](https://github.com/TU_USUARIO/foodv-ai-service) para generar recomendaciones personalizadas:
+
+- Lee el perfil del usuario autenticado (preferencias, restricciones, presupuesto)
+- Enriquece con historial de órdenes de los últimos 3 meses
+- Añade contexto temporal (desayuno / almuerzo / snack según la hora)
+- Llama al microservicio y retorna recomendaciones ordenadas por score
+- Permite registrar feedback (👍 / 👎) para mejorar futuras recomendaciones
+
+```
+GET  /api/ai/recommendations          # Recomendaciones personalizadas
+POST /api/ai/recommendations/feedback # Like / dislike de un producto
+```
+
+## Migraciones de Base de Datos
+
+| Versión | Descripción |
+|---|---|
+| V1 | Tabla `users` |
+| V2 | Tabla `aulas` |
+| V3 | Tabla `stores` |
+| V4 | Tabla `products` |
+| V5 | Tablas `orders` y `order_items` |
+| V6 | Tabla `payments` |
+| V7 | Tabla `refresh_tokens` |
+| V8 | Tabla `order_status_history` |
+| V9 | Columnas `deleted_at` (soft delete) |
+| V10 | Columnas de preferencias gastronómicas en `users` |
+| V11 | Tabla `ai_recommendation_feedback` |
+
+## Métricas de Negocio
+
+Disponibles en `/actuator/prometheus` para integrar con Grafana:
+
+| Métrica | Descripción |
+|---|---|
+| `foodv.orders.created` | Total de órdenes creadas |
+| `foodv.orders.completed` | Total de órdenes entregadas |
+| `foodv.orders.cancelled` | Total de órdenes canceladas |
+| `foodv.payments.completed` | Total de pagos exitosos |
+| `foodv.payments.failed` | Total de pagos fallidos |
+| `foodv.users.registered` | Total de usuarios registrados |
+| `foodv.stores.created` | Total de tiendas creadas |
+| `foodv.orders.processing.time` | Tiempo de procesamiento de órdenes |
 
 ## Requisitos Previos
 
@@ -72,21 +129,16 @@ src/main/java/com/foodv/backend/
 - Docker Desktop
 - Maven (incluido via `./mvnw`)
 
-## Configuración
+## Instalación
 
 ```bash
-# 1. Clonar el repositorio
 git clone https://github.com/TU_USUARIO/foodv-backend.git
 cd foodv-backend
-
-# 2. Copiar el archivo de variables de entorno
 cp .env.example .env
-
-# 3. Editar .env con tus credenciales
-nano .env
+# Edita .env con tus credenciales
 ```
 
-### Variables de entorno requeridas (`.env`)
+### Variables de entorno (`.env`)
 
 ```env
 SERVER_PORT=8080
@@ -115,159 +167,30 @@ CLOUDINARY_API_KEY=tu-api-key
 CLOUDINARY_API_SECRET=tu-api-secret
 
 AI_SERVICE_URL=http://localhost:8001
+AI_SERVICE_SECRET_KEY=change-me-in-production
+
+# Opcional — Firebase FCM
+FIREBASE_ENABLED=false
+FIREBASE_CREDENTIALS_PATH=
+FIREBASE_PROJECT_ID=
 ```
 
 ## Ejecución
 
 ```bash
-# 1. Levantar PostgreSQL, pgAdmin y Redis con Docker
+# Levantar PostgreSQL, Redis y pgAdmin
 docker-compose up -d
 
-# 2. Arrancar la aplicación (Flyway ejecuta las migraciones automáticamente)
+# Arrancar la aplicación (Flyway aplica migraciones automáticamente)
 ./mvnw spring-boot:run
 ```
 
-La API estará disponible en `http://localhost:8080/api`.
-Swagger UI: `http://localhost:8080/api/swagger-ui.html`
-Health check: `http://localhost:8080/api/actuator/health`
-
-## Endpoints
-
-### Autenticación (`/auth`)
-| Método | Endpoint | Auth | Descripción |
-|---|---|---|---|
-| POST | `/auth/register` | — | Registrar usuario |
-| POST | `/auth/login` | — | Iniciar sesión |
-| POST | `/auth/logout` | — | Cerrar sesión |
-| POST | `/auth/refresh` | — | Renovar access token |
-
-### Usuarios (`/users`)
-| Método | Endpoint | Auth | Descripción |
-|---|---|---|---|
-| GET | `/users` | ADMIN | Listar usuarios paginado |
-| POST | `/users` | ADMIN | Crear usuario |
-| GET | `/users/me` | Autenticado | Mi perfil |
-| PUT | `/users/me/password` | Autenticado | Cambiar contraseña |
-| GET | `/users/{id}` | ADMIN | Obtener usuario |
-| PUT | `/users/{id}` | ADMIN | Actualizar usuario |
-| DELETE | `/users/{id}` | ADMIN | Eliminar usuario |
-
-### Aulas (`/aulas`)
-| Método | Endpoint | Auth | Descripción |
-|---|---|---|---|
-| GET | `/aulas` | Autenticado | Listar aulas |
-| GET | `/aulas/activas` | Autenticado | Listar aulas activas |
-| POST | `/aulas` | ADMIN | Crear aula |
-| GET | `/aulas/{id}` | Autenticado | Obtener aula |
-| PUT | `/aulas/{id}` | ADMIN | Actualizar aula |
-| DELETE | `/aulas/{id}` | ADMIN | Eliminar aula |
-
-### Tiendas (`/stores`)
-| Método | Endpoint | Auth | Descripción |
-|---|---|---|---|
-| GET | `/stores` | Autenticado | Listar tiendas paginado |
-| GET | `/stores/activas` | Autenticado | Listar tiendas activas |
-| POST | `/stores` | ADMIN/COMERCIO | Crear tienda |
-| GET | `/stores/{id}` | Autenticado | Obtener tienda |
-| GET | `/stores/owner/{ownerId}` | Autenticado | Tienda por dueño |
-| PUT | `/stores/{id}` | ADMIN/COMERCIO | Actualizar tienda |
-| DELETE | `/stores/{id}` | ADMIN | Eliminar tienda |
-
-### Productos (`/products`)
-| Método | Endpoint | Auth | Descripción |
-|---|---|---|---|
-| GET | `/products` | Autenticado | Listar paginado |
-| GET | `/products/search` | Autenticado | Buscar con filtros |
-| POST | `/products` | ADMIN/COMERCIO | Crear producto |
-| GET | `/products/{id}` | Autenticado | Obtener producto |
-| GET | `/products/store/{storeId}` | Autenticado | Productos por tienda |
-| GET | `/products/store/{storeId}/activos` | Autenticado | Productos activos |
-| GET | `/products/categoria/{categoria}` | Autenticado | Por categoría |
-| PUT | `/products/{id}` | ADMIN/COMERCIO | Actualizar producto |
-| DELETE | `/products/{id}` | ADMIN/COMERCIO | Eliminar producto |
-
-#### Filtros de búsqueda (`/products/search`)
-| Parámetro | Tipo | Descripción |
-|---|---|---|
-| `nombre` | String | Búsqueda parcial por nombre |
-| `categoria` | Enum | COMIDA, BEBIDA, SNACK, POSTRE, OTRO |
-| `storeId` | Long | Filtrar por tienda |
-| `precioMin` | Decimal | Precio mínimo |
-| `precioMax` | Decimal | Precio máximo |
-| `disponible` | Boolean | Solo disponibles |
-| `page` | Int | Página (default 0) |
-| `size` | Int | Tamaño (default 20) |
-| `sortBy` | String | Campo de ordenamiento (default nombre) |
-
-### Órdenes (`/orders`)
-| Método | Endpoint | Auth | Descripción |
-|---|---|---|---|
-| GET | `/orders` | Autenticado | Listar paginado |
-| POST | `/orders` | ESTUDIANTE/ADMIN | Crear orden |
-| GET | `/orders/{id}` | Autenticado | Obtener orden |
-| GET | `/orders/user/{userId}` | Autenticado | Órdenes por usuario |
-| GET | `/orders/store/{storeId}` | Autenticado | Órdenes por tienda |
-| GET | `/orders/status/{status}` | Autenticado | Por estado |
-| PATCH | `/orders/{id}/status` | COMERCIO/REPARTIDOR/ADMIN | Cambiar estado |
-| PATCH | `/orders/{id}/cancel` | Autenticado | Cancelar orden |
-
-#### Estados de orden
-```
-PENDIENTE → PREPARANDO → EN_CAMINO → ENTREGADO
-PENDIENTE → CANCELADO
-PREPARANDO → CANCELADO
-```
-
-### Pagos (`/payments`)
-| Método | Endpoint | Auth | Descripción |
-|---|---|---|---|
-| POST | `/payments` | Autenticado | Crear pago MercadoPago |
-| GET | `/payments/{id}` | Autenticado | Obtener pago |
-| GET | `/payments/order/{orderId}` | Autenticado | Pago por orden |
-| GET | `/payments/user/{userId}` | Autenticado | Pagos por usuario |
-| POST | `/payments/webhook` | — | Webhook MercadoPago |
-
-### Imágenes (`/images`)
-| Método | Endpoint | Auth | Descripción |
-|---|---|---|---|
-| POST | `/images/products/{productId}` | ADMIN/COMERCIO | Subir imagen de producto |
-| POST | `/images/stores/{storeId}` | ADMIN/COMERCIO | Subir imagen de tienda |
-| DELETE | `/images` | ADMIN/COMERCIO | Eliminar imagen |
-
-### IA (`/ai`)
-| Método | Endpoint | Auth | Descripción |
-|---|---|---|---|
-| POST | `/ai/recommendations` | Autenticado | Recomendaciones personalizadas |
-
-### Utilidades
-| Método | Endpoint | Auth | Descripción |
-|---|---|---|---|
-| GET | `/actuator/health` | — | Health check |
-| GET | `/actuator/info` | — | Info de la app |
-| GET | `/actuator/metrics` | — | Métricas |
-| GET | `/swagger-ui.html` | — | Documentación interactiva |
-
-## WebSocket
-
-Endpoint: `ws://localhost:8080/api/ws`
-
-| Topic | Descripción |
+| URL | Descripción |
 |---|---|
-| `/topic/user/{userId}` | Notificaciones para el estudiante |
-| `/topic/store/{storeId}` | Notificaciones para el comercio |
-| `/topic/order/{orderId}` | Actualizaciones de una orden |
-
-## Migraciones de Base de Datos
-
-| Versión | Descripción |
-|---|---|
-| V1 | Tabla users |
-| V2 | Tabla aulas |
-| V3 | Tabla stores |
-| V4 | Tabla products |
-| V5 | Tablas orders y order_items |
-| V6 | Tabla payments |
-| V7 | Tabla refresh_tokens |
+| `http://localhost:8080/api` | API REST |
+| `http://localhost:8080/api/swagger-ui.html` | Swagger UI |
+| `http://localhost:8080/api/actuator/health` | Health check |
+| `http://localhost:8080/api/actuator/prometheus` | Métricas Prometheus |
 
 ## Tests
 
@@ -275,21 +198,25 @@ Endpoint: `ws://localhost:8080/api/ws`
 ./mvnw test
 ```
 
-- 10 tests de dominio — `OrderDomainService` máquina de estados
-- 5 tests de `LoginHandler` con Mockito
-- 4 tests de `CreateOrderHandler` con Mockito
-- 3 tests de `CreateUserHandler` con Mockito
-- 1 test de integración — `BackendApplicationTests`
+**30 tests — 0 fallos:**
 
-## Patrones de Diseño Aplicados
+| Suite | Tests | Tipo |
+|---|---|---|
+| `OrderDomainService` | 10 | Unitario — máquina de estados |
+| `LoginHandler` | 5 | Unitario — autenticación |
+| `CreateOrderHandler` | 4 | Unitario — creación de órdenes |
+| `CreateUserHandler` | 3 | Unitario — registro de usuarios |
+| `BackendApplicationTests` | 1 | Integración — contexto Spring |
+| `ProductRepositoryIntegrationTest` | 4 | Integración — repositorio |
+| `UserRepositoryIntegrationTest` | 3 | Integración — repositorio |
 
-- **Hexagonal Architecture** — dominio aislado del framework
-- **Builder** — construcción de entidades complejas con Lombok
-- **Adapter** — MercadoPago, Cloudinary, FastAPI AI como adaptadores
-- **State** — máquina de estados de órdenes
-- **Strategy** — evaluación de recomendaciones por restricciones dietéticas
-- **Observer** — notificaciones WebSocket al cambiar estado de orden
+## CI/CD
+
+GitHub Actions corre automáticamente en cada push a `main` y `develop`:
+
+1. **Test** — PostgreSQL 16 + Redis 7 como servicios, 30 tests
+2. **Build** — JAR artifact subido como artefacto de GitHub
 
 ## Proyecto Relacionado
 
-- [foodv-ai-service](https://github.com/xavierdev25/foodv-ai-service) — Microservicio de recomendaciones con FastAPI + phi3
+[foodv-ai-service](https://github.com/xavierdev25/foodv-ai-service) — Microservicio de recomendaciones con FastAPI + Ollama + Groq

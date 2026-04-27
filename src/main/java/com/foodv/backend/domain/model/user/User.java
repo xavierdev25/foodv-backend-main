@@ -5,6 +5,7 @@ import lombok.EqualsAndHashCode;
 import lombok.Getter;
 
 import java.time.LocalDateTime;
+import java.util.List;
 
 @Getter
 @Builder
@@ -23,4 +24,8 @@ public class User {
     private boolean activo;
     private LocalDateTime creadoEn;
     private LocalDateTime actualizadoEn;
+    private List<String> preferences;
+    private List<String> restrictions;
+    private String budgetRange;
+    private List<String> cuisineTypes;
 }

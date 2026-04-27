@@ -9,6 +9,10 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
+import com.foodv.backend.domain.model.user.User;
+import com.foodv.backend.domain.model.user.UserRole;
+import com.foodv.backend.domain.port.out.UserRepositoryPort;
+
 
 import java.util.List;
 
@@ -17,11 +21,33 @@ import java.util.List;
 public class FindOrderHandler implements FindOrderUseCase {
 
     private final OrderRepositoryPort orderRepositoryPort;
+    private final UserRepositoryPort userRepositoryPort;
 
     @Override
     public Order findById(Long id) {
         return orderRepositoryPort.findById(id)
                 .orElseThrow(() -> new EntityNotFoundException("Orden no encontrada"));
+    }
+
+    @Override
+    public Order findByIdForUser(Long orderId, String email) {
+        Order order = orderRepositoryPort.findById(orderId)
+                .orElseThrow(() -> new EntityNotFoundException("Orden no encontrada"));
+
+        User user = userRepositoryPort.findByEmail(email)
+                .orElseThrow(() -> new EntityNotFoundException("Usuario no encontrado"));
+
+        boolean isAdmin = user.getRole() == UserRole.ADMIN;
+        boolean isOwner = order.getUserId().equals(user.getId());
+        boolean isStoreOwner = user.getRole() == UserRole.COMERCIO;
+        boolean isDelivery = user.getRole() == UserRole.REPARTIDOR;
+
+        if (!isAdmin && !isOwner && !isStoreOwner && !isDelivery) {
+            throw new org.springframework.security.access.AccessDeniedException(
+                    "No tienes permiso para ver esta orden"
+            );
+        }
+        return order;
     }
 
     @Override

@@ -24,4 +24,6 @@ public interface FindOrderUseCase {
     Page<Order> findByUserIdPaginated(Long userId, Pageable pageable);
 
     Page<Order> findByStoreIdPaginated(Long storeId, Pageable pageable);
+
+    Order findByIdForUser(Long orderId, String email);
 }

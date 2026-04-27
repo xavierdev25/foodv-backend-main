@@ -34,6 +34,10 @@ public class RegisterHandler implements RegisterUseCase {
                 .role(command.role())
                 .activo(true)
                 .creadoEn(LocalDateTime.now())
+                .preferences(command.preferences())
+                .restrictions(command.restrictions())
+                .budgetRange(command.budgetRange())
+                .cuisineTypes(command.cuisineTypes())
                 .build();
 
         return userRepositoryPort.save(user);

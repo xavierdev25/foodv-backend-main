@@ -14,6 +14,9 @@ import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
+import org.hibernate.annotations.Array;
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
 
 import java.time.LocalDateTime;
 
@@ -56,4 +59,22 @@ public class UserEntity {
 
     @Column(name = "actualizado_en")
     private LocalDateTime actualizadoEn;
+
+    @Column(name = "deleted_at")
+    private LocalDateTime deletedAt;
+
+    @JdbcTypeCode(SqlTypes.ARRAY)
+    @Column(name = "preferences", columnDefinition = "text[]")
+    private String[] preferences;
+
+    @JdbcTypeCode(SqlTypes.ARRAY)
+    @Column(name = "restrictions", columnDefinition = "text[]")
+    private String[] restrictions;
+
+    @Column(name = "budget_range", length = 20)
+    private String budgetRange;
+
+    @JdbcTypeCode(SqlTypes.ARRAY)
+    @Column(name = "cuisine_types", columnDefinition = "text[]")
+    private String[] cuisineTypes;
 }

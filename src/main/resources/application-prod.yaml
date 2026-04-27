@@ -1,0 +1,27 @@
+# =============================================
+# FoodV Backend — Perfil PROD
+# =============================================
+spring:
+  jpa:
+    show-sql: false
+  docker:
+    compose:
+      lifecycle-management: none
+
+logging:
+  level:
+    com.foodv.backend: INFO
+    org.hibernate.SQL: WARN
+    org.hibernate.type.descriptor.sql.BasicBinder: WARN
+    org.springframework.security: WARN
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n"
+
+management:
+  endpoint:
+    health:
+      show-details: when-authorized
+  endpoints:
+    web:
+      exposure:
+        include: health,info

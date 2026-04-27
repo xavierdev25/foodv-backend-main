@@ -4,6 +4,8 @@
 spring:
   application:
     name: foodv-backend
+  profiles:
+      active: ${SPRING_PROFILES_ACTIVE:dev}
 
   # ── PostgreSQL DataSource ──────────────────
   datasource:
@@ -117,6 +119,7 @@ cors:
 ai:
   service:
     url: ${AI_SERVICE_URL:http://localhost:8001}
+    secret-key: ${AI_SERVICE_SECRET_KEY:}
 
 # ── SpringDoc / Swagger ────────────────────
 springdoc:
@@ -131,7 +134,7 @@ management:
   endpoints:
     web:
       exposure:
-        include: health,info,metrics
+        include: health,info,metrics,prometheus
       base-path: /actuator
   endpoint:
     health:
@@ -141,3 +144,9 @@ management:
       name: FoodV Backend
       version: 1.0.0
       description: Sistema de delivery universitario
+
+# ── Firebase FCM ───────────────────────────
+firebase:
+  enabled: ${FIREBASE_ENABLED:false}
+  credentials-path: ${FIREBASE_CREDENTIALS_PATH:}
+  project-id: ${FIREBASE_PROJECT_ID:}

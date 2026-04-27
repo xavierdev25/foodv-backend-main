@@ -9,6 +9,8 @@ import com.foodv.backend.infrastructure.web.dto.store.CreateStoreRequest;
 import com.foodv.backend.infrastructure.web.dto.store.StoreResponse;
 import com.foodv.backend.infrastructure.web.dto.store.UpdateStoreRequest;
 import com.foodv.backend.infrastructure.web.mapper.StoreWebMapper;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -17,6 +19,7 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
+@Tag(name = "Tiendas")
 @RestController
 @RequestMapping("/stores")
 @RequiredArgsConstructor
@@ -28,12 +31,14 @@ public class StoreController {
     private final DeleteStoreUseCase deleteStoreUseCase;
     private final StoreWebMapper mapper;
 
+    @Operation(summary = "Crear tienda")
     @PostMapping
     public ResponseEntity<StoreResponse> create(@Valid @RequestBody CreateStoreRequest request) {
         Store store = createStoreUseCase.execute(mapper.toCommand(request));
         return ResponseEntity.status(HttpStatus.CREATED).body(mapper.toResponse(store));
     }
 
+    @Operation(summary = "Listar tiendas")
     @GetMapping
     public ResponseEntity<List<StoreResponse>> findAll() {
         List<StoreResponse> responses = findStoreUseCase.findAll().stream()
@@ -42,6 +47,7 @@ public class StoreController {
         return ResponseEntity.ok(responses);
     }
 
+    @Operation(summary = "Listar tiendas activas")
     @GetMapping("/activas")
     public ResponseEntity<List<StoreResponse>> findAllActivas() {
         List<StoreResponse> responses = findStoreUseCase.findAllActivas().stream()
@@ -50,24 +56,28 @@ public class StoreController {
         return ResponseEntity.ok(responses);
     }
 
+    @Operation(summary = "Obtener tienda por ID")
     @GetMapping("/{id}")
     public ResponseEntity<StoreResponse> findById(@PathVariable Long id) {
         Store store = findStoreUseCase.findById(id);
         return ResponseEntity.ok(mapper.toResponse(store));
     }
 
+    @Operation(summary = "Obtener tienda por dueño")
     @GetMapping("/owner/{ownerId}")
     public ResponseEntity<StoreResponse> findByOwnerId(@PathVariable Long ownerId) {
         Store store = findStoreUseCase.findByOwnerId(ownerId);
         return ResponseEntity.ok(mapper.toResponse(store));
     }
 
+    @Operation(summary = "Actualizar tienda")
     @PutMapping("/{id}")
     public ResponseEntity<StoreResponse> update(@PathVariable Long id, @Valid @RequestBody UpdateStoreRequest request) {
         Store store = updateStoreUseCase.execute(id, mapper.toCommand(request));
         return ResponseEntity.ok(mapper.toResponse(store));
     }
 
+    @Operation(summary = "Eliminar tienda")
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> delete(@PathVariable Long id) {
         deleteStoreUseCase.execute(id);

@@ -1,11 +1,8 @@
 package com.foodv.backend.infrastructure.web.dto.auth;
 
 import com.foodv.backend.domain.model.user.UserRole;
-import jakarta.validation.constraints.Email;
-import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.NotNull;
-import jakarta.validation.constraints.Size;
-import jakarta.validation.constraints.Pattern;
+import jakarta.validation.constraints.*;
+import java.util.List;
 
 public record RegisterRequest(
         @NotBlank String nombres,
@@ -19,5 +16,18 @@ public record RegisterRequest(
         )
         String password,
         String telefono,
-        @NotNull UserRole role
-) {}
+        @NotNull UserRole role,
+
+        // Preferencias gastronómicas
+        List<String> preferences,        // ["pollo", "arroz", "menú ejecutivo"]
+        List<String> restrictions,       // ["VEGETARIANO", "SIN_GLUTEN"]
+        String budgetRange,              // "BAJO" | "MEDIO" | "ALTO"
+        List<String> cuisineTypes        // ["criolla", "italiana", "china"]
+) {
+        public RegisterRequest {
+                if (preferences == null) preferences = List.of();
+                if (restrictions == null) restrictions = List.of();
+                if (budgetRange == null || budgetRange.isBlank()) budgetRange = "MEDIO";
+                if (cuisineTypes == null) cuisineTypes = List.of();
+        }
+}

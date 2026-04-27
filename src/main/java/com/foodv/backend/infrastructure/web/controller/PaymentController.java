@@ -7,6 +7,10 @@ import com.foodv.backend.domain.port.in.payment.ProcessWebhookUseCase;
 import com.foodv.backend.infrastructure.web.dto.payment.CreatePaymentRequest;
 import com.foodv.backend.infrastructure.web.dto.payment.PaymentResponse;
 import com.foodv.backend.infrastructure.web.mapper.PaymentWebMapper;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.responses.ApiResponses;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
@@ -16,6 +20,7 @@ import org.springframework.web.bind.annotation.*;
 import java.util.List;
 import java.util.Map;
 
+@Tag(name = "Pagos")
 @RestController
 @RequestMapping("/payments")
 public class PaymentController {
@@ -38,24 +43,47 @@ public class PaymentController {
         this.mapper = mapper;
     }
 
+    @Operation(summary = "Crear pago MercadoPago")
+    @ApiResponses({
+        @ApiResponse(responseCode = "201", description = "Pago creado"),
+        @ApiResponse(responseCode = "400", description = "Datos inválidos"),
+        @ApiResponse(responseCode = "401", description = "No autenticado")
+    })
     @PostMapping
     public ResponseEntity<PaymentResponse> create(@Valid @RequestBody CreatePaymentRequest request) {
         Payment payment = createPaymentUseCase.execute(mapper.toCommand(request));
         return ResponseEntity.status(HttpStatus.CREATED).body(mapper.toResponse(payment));
     }
 
+    @Operation(summary = "Obtener pago")
+    @ApiResponses({
+        @ApiResponse(responseCode = "200", description = "Pago encontrado"),
+        @ApiResponse(responseCode = "401", description = "No autenticado"),
+        @ApiResponse(responseCode = "404", description = "Pago no encontrado")
+    })
     @GetMapping("/{id}")
     public ResponseEntity<PaymentResponse> findById(@PathVariable Long id) {
         Payment payment = findPaymentUseCase.findById(id);
         return ResponseEntity.ok(mapper.toResponse(payment));
     }
 
+    @Operation(summary = "Pago por orden")
+    @ApiResponses({
+        @ApiResponse(responseCode = "200", description = "Pago encontrado"),
+        @ApiResponse(responseCode = "401", description = "No autenticado"),
+        @ApiResponse(responseCode = "404", description = "Pago no encontrado")
+    })
     @GetMapping("/order/{orderId}")
     public ResponseEntity<PaymentResponse> findByOrderId(@PathVariable Long orderId) {
         Payment payment = findPaymentUseCase.findByOrderId(orderId);
         return ResponseEntity.ok(mapper.toResponse(payment));
     }
 
+    @Operation(summary = "Pagos por usuario")
+    @ApiResponses({
+        @ApiResponse(responseCode = "200", description = "Lista de pagos"),
+        @ApiResponse(responseCode = "401", description = "No autenticado")
+    })
     @GetMapping("/user/{userId}")
     public ResponseEntity<List<PaymentResponse>> findByUserId(@PathVariable Long userId) {
         List<PaymentResponse> responses = findPaymentUseCase.findByUserId(userId).stream()
@@ -64,6 +92,11 @@ public class PaymentController {
         return ResponseEntity.ok(responses);
     }
 
+    @Operation(summary = "Webhook MercadoPago")
+    @ApiResponses({
+        @ApiResponse(responseCode = "200", description = "Webhook procesado"),
+        @ApiResponse(responseCode = "401", description = "Firma inválida")
+    })
     @PostMapping("/webhook")
     public ResponseEntity<Void> webhook(
             @RequestBody String rawBody,
@@ -121,4 +154,3 @@ public class PaymentController {
         }
     }
 }
-

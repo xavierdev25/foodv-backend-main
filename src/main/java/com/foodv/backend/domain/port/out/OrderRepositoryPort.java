@@ -27,4 +27,6 @@ public interface OrderRepositoryPort {
     Page<Order> findByUserIdPaginated(Long userId, Pageable pageable);
 
     Page<Order> findByStoreIdPaginated(Long storeId, Pageable pageable);
+
+    List<Order> findByUserIdAndStatus(Long userId, OrderStatus status);
 }

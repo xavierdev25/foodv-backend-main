@@ -11,6 +11,7 @@ import org.springframework.stereotype.Repository;
 
 import java.math.BigDecimal;
 import java.util.List;
+import java.util.Optional;
 
 @Repository
 public interface ProductJpaRepository extends JpaRepository<ProductEntity, Long> {
@@ -20,6 +21,11 @@ public interface ProductJpaRepository extends JpaRepository<ProductEntity, Long>
     List<ProductEntity> findByCategoria(ProductCategory categoria);
     Page<ProductEntity> findAll(Pageable pageable);
     Page<ProductEntity> findByStoreId(Long storeId, Pageable pageable);
+    List<ProductEntity> findAllByDeletedAtIsNull();
+    List<ProductEntity> findByStoreIdAndDeletedAtIsNull(Long storeId);
+    Optional<ProductEntity> findByIdAndDeletedAtIsNull(Long id);
+    Page<ProductEntity> findAllByDeletedAtIsNull(Pageable pageable);
+
 
     @Query("""
     SELECT p FROM ProductEntity p

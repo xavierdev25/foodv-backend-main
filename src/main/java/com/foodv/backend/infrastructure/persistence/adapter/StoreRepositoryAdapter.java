@@ -6,6 +6,7 @@ import com.foodv.backend.infrastructure.persistence.repository.StoreJpaRepositor
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 
@@ -23,7 +24,7 @@ public class StoreRepositoryAdapter implements StoreRepositoryPort {
 
     @Override
     public Optional<Store> findById(Long id) {
-        return jpaRepository.findById(id).map(mapper::toDomain);
+        return jpaRepository.findByIdAndDeletedAtIsNull(id).map(mapper::toDomain);
     }
 
     @Override
@@ -38,7 +39,7 @@ public class StoreRepositoryAdapter implements StoreRepositoryPort {
 
     @Override
     public List<Store> findAll() {
-        return jpaRepository.findAll().stream().map(mapper::toDomain).toList();
+        return jpaRepository.findAllByDeletedAtIsNull().stream().map(mapper::toDomain).toList();
     }
 
     @Override
@@ -48,6 +49,9 @@ public class StoreRepositoryAdapter implements StoreRepositoryPort {
 
     @Override
     public void deleteById(Long id) {
-        jpaRepository.deleteById(id);
+        jpaRepository.findByIdAndDeletedAtIsNull(id).ifPresent(entity -> {
+            entity.setDeletedAt(LocalDateTime.now());
+            jpaRepository.save(entity);
+        });
     }
 }
