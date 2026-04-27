@@ -56,4 +56,7 @@ public class UserEntity {
 
     @Column(name = "actualizado_en")
     private LocalDateTime actualizadoEn;
+
+    @Column(name = "deleted_at")
+    private LocalDateTime deletedAt;
 }

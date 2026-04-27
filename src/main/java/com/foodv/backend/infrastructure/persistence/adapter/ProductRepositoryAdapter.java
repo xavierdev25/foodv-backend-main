@@ -9,6 +9,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Component;
 import java.math.BigDecimal;
+import java.time.LocalDateTime;
 
 import java.util.List;
 import java.util.Optional;
@@ -35,12 +36,12 @@ public class ProductRepositoryAdapter implements ProductRepositoryPort {
 
     @Override
     public Optional<Product> findById(Long id) {
-        return jpaRepository.findById(id).map(mapper::toDomain);
+        return jpaRepository.findByIdAndDeletedAtIsNull(id).map(mapper::toDomain);
     }
 
     @Override
     public List<Product> findByStoreId(Long storeId) {
-        return jpaRepository.findByStoreId(storeId).stream().map(mapper::toDomain).toList();
+        return jpaRepository.findByStoreIdAndDeletedAtIsNull(storeId).stream().map(mapper::toDomain).toList();
     }
 
     @Override
@@ -55,17 +56,20 @@ public class ProductRepositoryAdapter implements ProductRepositoryPort {
 
     @Override
     public List<Product> findAll() {
-        return jpaRepository.findAll().stream().map(mapper::toDomain).toList();
+        return jpaRepository.findAllByDeletedAtIsNull().stream().map(mapper::toDomain).toList();
     }
 
     @Override
     public void deleteById(Long id) {
-        jpaRepository.deleteById(id);
+        jpaRepository.findByIdAndDeletedAtIsNull(id).ifPresent(entity -> {
+            entity.setDeletedAt(LocalDateTime.now());
+            jpaRepository.save(entity);
+        });
     }
 
     @Override
     public Page<Product> findAllPaginated(Pageable pageable) {
-        return jpaRepository.findAll(pageable).map(mapper::toDomain);
+        return jpaRepository.findAllByDeletedAtIsNull(pageable).map(mapper::toDomain);
     }
 
     @Override

@@ -4,6 +4,8 @@
 spring:
   application:
     name: foodv-backend
+  profiles:
+      active: ${SPRING_PROFILES_ACTIVE:dev}
 
   # ── PostgreSQL DataSource ──────────────────
   datasource:

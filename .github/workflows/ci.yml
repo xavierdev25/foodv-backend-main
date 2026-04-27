@@ -71,6 +71,7 @@ jobs:
           CLOUDINARY_API_KEY: placeholder
           CLOUDINARY_API_SECRET: placeholder
           AI_SERVICE_URL: http://localhost:8001
+          SPRING_PROFILES_ACTIVE: dev
         run: ./mvnw test --no-transfer-progress
 
       - name: Publicar resultados de tests
