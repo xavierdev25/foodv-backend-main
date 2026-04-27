@@ -4,6 +4,7 @@ import com.foodv.backend.domain.model.user.User;
 import com.foodv.backend.domain.model.user.UserRole;
 import com.foodv.backend.domain.port.in.user.CreateUserUseCase;
 import com.foodv.backend.domain.port.out.UserRepositoryPort;
+import com.foodv.backend.infrastructure.metrics.BusinessMetricsService;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -25,6 +26,7 @@ class CreateUserHandlerTest {
 
     @Mock private UserRepositoryPort userRepositoryPort;
     @Mock private PasswordEncoder passwordEncoder;
+    @Mock private BusinessMetricsService metricsService;
     @InjectMocks private CreateUserHandler createUserHandler;
 
     @Test

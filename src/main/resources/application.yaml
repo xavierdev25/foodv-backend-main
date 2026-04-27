@@ -133,7 +133,7 @@ management:
   endpoints:
     web:
       exposure:
-        include: health,info,metrics
+        include: health,info,metrics,prometheus
       base-path: /actuator
   endpoint:
     health:
@@ -143,3 +143,9 @@ management:
       name: FoodV Backend
       version: 1.0.0
       description: Sistema de delivery universitario
+
+# ── Firebase FCM ───────────────────────────
+firebase:
+  enabled: ${FIREBASE_ENABLED:false}
+  credentials-path: ${FIREBASE_CREDENTIALS_PATH:}
+  project-id: ${FIREBASE_PROJECT_ID:}
