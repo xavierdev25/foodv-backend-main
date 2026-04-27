@@ -11,6 +11,8 @@ public record UserResponse(
         String email,
         String telefono,
         UserRole role,
+        Boolean esRepartidor,
+        Long campusId,
         boolean activo,
         LocalDateTime creadoEn,
         List<String> preferences,

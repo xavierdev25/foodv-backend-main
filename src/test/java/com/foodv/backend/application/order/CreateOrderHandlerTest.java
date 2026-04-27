@@ -67,6 +67,12 @@ class CreateOrderHandlerTest {
                 .creadoEn(LocalDateTime.now()).build();
     }
 
+    private CreateOrderUseCase.CreateOrderCommand buildCommand(Long userId, Long storeId, Long aulaId,
+                                                               List<CreateOrderUseCase.OrderItemCommand> items, String notas) {
+        return new CreateOrderUseCase.CreateOrderCommand(
+                userId, storeId, aulaId, items, notas, BigDecimal.ZERO);
+    }
+
     @Test
     @DisplayName("Crear orden exitosamente calcula total correctamente")
     void crear_orden_calcula_total_correctamente() {
@@ -80,13 +86,11 @@ class CreateOrderHandlerTest {
         when(orderRepositoryPort.save(any())).thenAnswer(inv -> inv.getArgument(0));
         when(productRepositoryPort.save(any())).thenAnswer(inv -> inv.getArgument(0));
 
-        CreateOrderUseCase.CreateOrderCommand command = new CreateOrderUseCase.CreateOrderCommand(
+        Order result = createOrderHandler.execute(buildCommand(
                 1L, 1L, 1L,
                 List.of(new CreateOrderUseCase.OrderItemCommand(1L, 2)),
                 "Sin ají"
-        );
-
-        Order result = createOrderHandler.execute(command);
+        ));
 
         assertNotNull(result);
         assertEquals(OrderStatus.PENDIENTE, result.getStatus());
@@ -100,7 +104,7 @@ class CreateOrderHandlerTest {
         when(userRepositoryPort.findById(99L)).thenReturn(Optional.empty());
 
         assertThrows(EntityNotFoundException.class, () ->
-                createOrderHandler.execute(new CreateOrderUseCase.CreateOrderCommand(
+                createOrderHandler.execute(buildCommand(
                         99L, 1L, 1L,
                         List.of(new CreateOrderUseCase.OrderItemCommand(1L, 1)),
                         null
@@ -120,7 +124,7 @@ class CreateOrderHandlerTest {
         when(storeRepositoryPort.findById(1L)).thenReturn(Optional.of(inactiveStore));
 
         assertThrows(IllegalArgumentException.class, () ->
-                createOrderHandler.execute(new CreateOrderUseCase.CreateOrderCommand(
+                createOrderHandler.execute(buildCommand(
                         1L, 1L, 1L,
                         List.of(new CreateOrderUseCase.OrderItemCommand(1L, 1)),
                         null
@@ -148,7 +152,7 @@ class CreateOrderHandlerTest {
         when(productRepositoryPort.findById(1L)).thenReturn(Optional.of(lowStockProduct));
 
         assertThrows(IllegalArgumentException.class, () ->
-                createOrderHandler.execute(new CreateOrderUseCase.CreateOrderCommand(
+                createOrderHandler.execute(buildCommand(
                         1L, 1L, 1L,
                         List.of(new CreateOrderUseCase.OrderItemCommand(1L, 5)),
                         null

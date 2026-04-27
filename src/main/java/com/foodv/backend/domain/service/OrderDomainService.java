@@ -15,9 +15,11 @@ public class OrderDomainService {
     /**
      * Valida y aplica una transición de estado a una orden.
      * Implementa la máquina de estados:
-     * PENDIENTE → PREPARANDO → EN_CAMINO → ENTREGADO
+     * PENDIENTE → PREPARANDO → LISTO_PARA_RECOGER → EN_CAMINO → ENTREGADO
      * PENDIENTE → CANCELADO
      * PREPARANDO → CANCELADO
+     * LISTO_PARA_RECOGER → CANCELADO
+     * EN_CAMINO → CANCELADO
      *
      * @throws IllegalArgumentException si la transición no es válida
      */
@@ -32,10 +34,18 @@ public class OrderDomainService {
                 .userId(order.getUserId())
                 .storeId(order.getStoreId())
                 .aulaId(order.getAulaId())
+                .repartidorId(order.getRepartidorId())
                 .items(order.getItems())
                 .total(order.getTotal())
+                .propina(order.getPropina())
+                .tarifaServicio(order.getTarifaServicio())
+                .comisionFoodv(order.getComisionFoodv())
                 .status(newStatus)
                 .notas(order.getNotas())
+                .motivoCancelacion(order.getMotivoCancelacion())
+                .canceladoPor(order.getCanceladoPor())
+                .codigoConfirmacion(order.getCodigoConfirmacion())
+                .fotoEntregaUrl(order.getFotoEntregaUrl())
                 .creadoEn(order.getCreadoEn())
                 .actualizadoEn(LocalDateTime.now())
                 .build();

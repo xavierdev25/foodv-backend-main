@@ -58,10 +58,28 @@ class OrderDomainServiceTest {
     }
 
     @Test
-    @DisplayName("PREPARANDO puede transicionar a EN_CAMINO")
-    void preparando_to_en_camino() {
+    @DisplayName("PREPARANDO puede transicionar a LISTO_PARA_RECOGER")
+    void preparando_to_listo_para_recoger() {
         Order preparando = service.applyStatusTransition(orderPendiente, OrderStatus.PREPARANDO);
-        Order result = service.applyStatusTransition(preparando, OrderStatus.EN_CAMINO);
+        Order result = service.applyStatusTransition(preparando, OrderStatus.LISTO_PARA_RECOGER);
+        assertEquals(OrderStatus.LISTO_PARA_RECOGER, result.getStatus());
+    }
+
+    @Test
+    @DisplayName("PREPARANDO no puede transicionar a EN_CAMINO directamente")
+    void preparando_to_en_camino_lanza_excepcion() {
+        Order preparando = service.applyStatusTransition(orderPendiente, OrderStatus.PREPARANDO);
+        assertThrows(IllegalArgumentException.class, () ->
+                service.applyStatusTransition(preparando, OrderStatus.EN_CAMINO)
+        );
+    }
+
+    @Test
+    @DisplayName("LISTO_PARA_RECOGER puede transicionar a EN_CAMINO")
+    void listo_para_recoger_to_en_camino() {
+        Order preparando = service.applyStatusTransition(orderPendiente, OrderStatus.PREPARANDO);
+        Order listo = service.applyStatusTransition(preparando, OrderStatus.LISTO_PARA_RECOGER);
+        Order result = service.applyStatusTransition(listo, OrderStatus.EN_CAMINO);
         assertEquals(OrderStatus.EN_CAMINO, result.getStatus());
     }
 
@@ -69,7 +87,8 @@ class OrderDomainServiceTest {
     @DisplayName("EN_CAMINO puede transicionar a ENTREGADO")
     void en_camino_to_entregado() {
         Order preparando = service.applyStatusTransition(orderPendiente, OrderStatus.PREPARANDO);
-        Order enCamino = service.applyStatusTransition(preparando, OrderStatus.EN_CAMINO);
+        Order listo = service.applyStatusTransition(preparando, OrderStatus.LISTO_PARA_RECOGER);
+        Order enCamino = service.applyStatusTransition(listo, OrderStatus.EN_CAMINO);
         Order result = service.applyStatusTransition(enCamino, OrderStatus.ENTREGADO);
         assertEquals(OrderStatus.ENTREGADO, result.getStatus());
     }
@@ -78,7 +97,8 @@ class OrderDomainServiceTest {
     @DisplayName("ENTREGADO es estado terminal — no puede cambiar")
     void entregado_es_terminal() {
         Order preparando = service.applyStatusTransition(orderPendiente, OrderStatus.PREPARANDO);
-        Order enCamino = service.applyStatusTransition(preparando, OrderStatus.EN_CAMINO);
+        Order listo = service.applyStatusTransition(preparando, OrderStatus.LISTO_PARA_RECOGER);
+        Order enCamino = service.applyStatusTransition(listo, OrderStatus.EN_CAMINO);
         Order entregado = service.applyStatusTransition(enCamino, OrderStatus.ENTREGADO);
 
         assertTrue(service.isTerminal(entregado));
@@ -98,18 +118,21 @@ class OrderDomainServiceTest {
     }
 
     @Test
-    @DisplayName("isCancellable retorna true para PENDIENTE y PREPARANDO")
+    @DisplayName("isCancellable retorna true solo para PENDIENTE")
     void is_cancellable() {
         assertTrue(service.isCancellable(orderPendiente));
-        Order preparando = service.applyStatusTransition(orderPendiente, OrderStatus.PREPARANDO);
-        assertTrue(service.isCancellable(preparando));
     }
 
     @Test
-    @DisplayName("isCancellable retorna false para EN_CAMINO y ENTREGADO")
+    @DisplayName("isCancellable retorna false para PREPARANDO, EN_CAMINO y ENTREGADO")
     void is_not_cancellable() {
         Order preparando = service.applyStatusTransition(orderPendiente, OrderStatus.PREPARANDO);
-        Order enCamino = service.applyStatusTransition(preparando, OrderStatus.EN_CAMINO);
+        assertFalse(service.isCancellable(preparando));
+
+        Order listo = service.applyStatusTransition(preparando, OrderStatus.LISTO_PARA_RECOGER);
+        assertFalse(service.isCancellable(listo));
+
+        Order enCamino = service.applyStatusTransition(listo, OrderStatus.EN_CAMINO);
         assertFalse(service.isCancellable(enCamino));
     }
 

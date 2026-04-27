@@ -8,12 +8,14 @@ import com.foodv.backend.infrastructure.web.dto.order.OrderItemRequest;
 import com.foodv.backend.infrastructure.web.dto.order.OrderItemResponse;
 import com.foodv.backend.infrastructure.web.dto.order.OrderResponse;
 import org.mapstruct.Mapper;
+import org.mapstruct.Mapping;
 
 import java.util.List;
 
 @Mapper(componentModel = "spring")
 public interface OrderWebMapper {
 
+    @Mapping(target = "statusDescripcion", expression = "java(order.getStatus().enEspanol())")
     OrderResponse toResponse(Order order);
 
     OrderItemResponse toItemResponse(OrderItem item);
@@ -31,7 +33,8 @@ public interface OrderWebMapper {
                 request.storeId(),
                 request.aulaId(),
                 items,
-                request.notas()
+                request.notas(),
+                request.propina()
         );
     }
 }

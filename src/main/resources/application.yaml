@@ -2,11 +2,6 @@
 # FoodV Backend — Spring Boot Configuration
 # =============================================
 spring:
-  info:
-    app:
-      name: FoodV Backend
-      version: 1.0.0
-      description: Sistema de delivery universitario FoodV
   application:
     name: foodv-backend
   profiles:
@@ -147,6 +142,15 @@ management:
   info:
     env:
       enabled: true
+
+# ── Info ───────────────────────────────────
+info:
+  app:
+    name: FoodV Backend
+    version: 1.0.0
+    description: Sistema de delivery universitario FoodV
+    java-version: "21"
+    spring-boot-version: "4.0.6"
 
 # ── Firebase FCM ───────────────────────────
 firebase:

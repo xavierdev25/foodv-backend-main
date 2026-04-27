@@ -55,7 +55,7 @@ public class UpdateOrderStatusHandler implements UpdateOrderStatusUseCase {
                 .orderId(order.getId())
                 .status(newStatus)
                 .changedBy(changedBy)
-                .notas("Estado actualizado a " + traduccirEstado(newStatus))
+                .notas("Estado actualizado a " + newStatus.enEspanol())
                 .creadoEn(LocalDateTime.now())
                 .build());
 
@@ -64,7 +64,7 @@ public class UpdateOrderStatusHandler implements UpdateOrderStatusUseCase {
                 .orderId(updatedOrder.getId())
                 .userId(updatedOrder.getUserId())
                 .storeId(updatedOrder.getStoreId())
-                .message("Tu orden cambió de estado a: " + traduccirEstado(newStatus))
+                .message("Tu orden cambió de estado a: " + newStatus.enEspanol())
                 .payload(updatedOrder)
                 .timestamp(LocalDateTime.now())
                 .build();
@@ -79,19 +79,9 @@ public class UpdateOrderStatusHandler implements UpdateOrderStatusUseCase {
         }
 
         String title = "Actualización de tu pedido #" + order.getId();
-        String body = "Tu pedido ahora está: " + traduccirEstado(newStatus);
+        String body = "Tu pedido ahora está: " + newStatus.enEspanol();
         pushNotificationPort.sendToUser(String.valueOf(order.getUserId()), title, body);
 
         return updatedOrder;
-    }
-
-    private String traduccirEstado(OrderStatus status) {
-        return switch (status) {
-            case PENDIENTE -> "Pendiente";
-            case PREPARANDO -> "En preparación";
-            case EN_CAMINO -> "En camino";
-            case ENTREGADO -> "Entregado";
-            case CANCELADO -> "Cancelado";
-        };
     }
 }

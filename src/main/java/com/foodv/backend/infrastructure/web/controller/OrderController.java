@@ -7,10 +7,7 @@ import com.foodv.backend.domain.port.in.order.CreateOrderUseCase;
 import com.foodv.backend.domain.port.in.order.FindOrderUseCase;
 import com.foodv.backend.domain.port.in.order.UpdateOrderStatusUseCase;
 import com.foodv.backend.infrastructure.persistence.repository.OrderStatusHistoryRepository;
-import com.foodv.backend.infrastructure.web.dto.order.CreateOrderRequest;
-import com.foodv.backend.infrastructure.web.dto.order.OrderResponse;
-import com.foodv.backend.infrastructure.web.dto.order.OrderStatusHistoryResponse;
-import com.foodv.backend.infrastructure.web.dto.order.UpdateOrderStatusRequest;
+import com.foodv.backend.infrastructure.web.dto.order.*;
 import com.foodv.backend.infrastructure.web.mapper.OrderWebMapper;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
@@ -146,14 +143,23 @@ public class OrderController {
 
     @Operation(summary = "Cancelar orden")
     @ApiResponses({
-        @ApiResponse(responseCode = "200", description = "Orden cancelada"),
-        @ApiResponse(responseCode = "400", description = "No se puede cancelar"),
-        @ApiResponse(responseCode = "401", description = "No autenticado"),
-        @ApiResponse(responseCode = "404", description = "Orden no encontrada")
+            @ApiResponse(responseCode = "200", description = "Orden cancelada"),
+            @ApiResponse(responseCode = "400", description = "No se puede cancelar"),
+            @ApiResponse(responseCode = "401", description = "No autenticado"),
+            @ApiResponse(responseCode = "404", description = "Orden no encontrada")
     })
     @PatchMapping("/{id}/cancel")
-    public ResponseEntity<OrderResponse> cancel(@PathVariable Long id) {
-        Order order = cancelOrderUseCase.execute(id);
+    public ResponseEntity<OrderResponse> cancel(
+            @PathVariable Long id,
+            @RequestBody(required = false) CancelOrderRequest request,
+            @RequestHeader("Authorization") String authHeader) {
+        String email = jwtService.extractEmail(authHeader.substring(7));
+        Long canceladoPor = userRepositoryPort.findByEmail(email)
+                .orElseThrow(() -> new IllegalStateException("Usuario no encontrado"))
+                .getId();
+        String motivo = request != null ? request.motivo() : null;
+        Order order = cancelOrderUseCase.execute(
+                new CancelOrderUseCase.CancelOrderCommand(id, canceladoPor, motivo));
         return ResponseEntity.ok(mapper.toResponse(order));
     }
 

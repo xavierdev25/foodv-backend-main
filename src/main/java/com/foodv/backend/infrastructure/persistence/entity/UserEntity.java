@@ -63,6 +63,12 @@ public class UserEntity {
     @Column(name = "deleted_at")
     private LocalDateTime deletedAt;
 
+    @Column(name = "es_repartidor")
+    private Boolean esRepartidor;
+
+    @Column(name = "campus_id")
+    private Long campusId;
+
     @JdbcTypeCode(SqlTypes.ARRAY)
     @Column(name = "preferences", columnDefinition = "text[]")
     private String[] preferences;
