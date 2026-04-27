@@ -37,6 +37,10 @@ public class CreateUserHandler implements CreateUserUseCase {
                 .role(command.role())
                 .activo(true)
                 .creadoEn(LocalDateTime.now())
+                .preferences(command.preferences())
+                .restrictions(command.restrictions())
+                .budgetRange(command.budgetRange())
+                .cuisineTypes(command.cuisineTypes())
                 .build();
 
         User savedUser = userRepositoryPort.save(user);

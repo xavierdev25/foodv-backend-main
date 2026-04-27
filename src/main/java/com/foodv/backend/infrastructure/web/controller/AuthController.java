@@ -82,7 +82,11 @@ public class AuthController {
                 request.email(),
                 request.password(),
                 request.telefono(),
-                request.role()
+                request.role(),
+                request.preferences(),
+                request.restrictions(),
+                request.budgetRange(),
+                request.cuisineTypes()
         ));
         return ResponseEntity.status(201).body(Map.of("message", "Usuario registrado exitosamente"));
     }

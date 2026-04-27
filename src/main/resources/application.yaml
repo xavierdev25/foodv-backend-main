@@ -119,6 +119,7 @@ cors:
 ai:
   service:
     url: ${AI_SERVICE_URL:http://localhost:8001}
+    secret-key: ${AI_SERVICE_SECRET_KEY:}
 
 # ── SpringDoc / Swagger ────────────────────
 springdoc:

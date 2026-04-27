@@ -13,7 +13,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.security.crypto.password.PasswordEncoder;
 
-import java.time.LocalDateTime;
+import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
@@ -29,6 +29,13 @@ class CreateUserHandlerTest {
     @Mock private BusinessMetricsService metricsService;
     @InjectMocks private CreateUserHandler createUserHandler;
 
+    private CreateUserUseCase.CreateUserCommand buildCommand(String email, String telefono) {
+        return new CreateUserUseCase.CreateUserCommand(
+                "Xavier", "David", email, "password123", telefono, UserRole.ESTUDIANTE,
+                List.of("pollo", "arroz"), List.of(), "MEDIO", List.of("criolla")
+        );
+    }
+
     @Test
     @DisplayName("Crear usuario exitosamente hashea password")
     void crear_usuario_hashea_password() {
@@ -43,9 +50,7 @@ class CreateUserHandlerTest {
                     .creadoEn(u.getCreadoEn()).build();
         });
 
-        User result = createUserHandler.execute(new CreateUserUseCase.CreateUserCommand(
-                "Xavier", "David", "nuevo@foodv.com", "password123", "999999999", UserRole.ESTUDIANTE
-        ));
+        User result = createUserHandler.execute(buildCommand("nuevo@foodv.com", "999999999"));
 
         assertNotNull(result);
         assertEquals("hashedPassword", result.getPassword());
@@ -60,9 +65,7 @@ class CreateUserHandlerTest {
         when(userRepositoryPort.existsByEmail("existe@foodv.com")).thenReturn(true);
 
         assertThrows(IllegalArgumentException.class, () ->
-                createUserHandler.execute(new CreateUserUseCase.CreateUserCommand(
-                        "Test", "User", "existe@foodv.com", "password123", null, UserRole.ESTUDIANTE
-                ))
+                createUserHandler.execute(buildCommand("existe@foodv.com", null))
         );
         verify(userRepositoryPort, never()).save(any());
     }
@@ -74,9 +77,7 @@ class CreateUserHandlerTest {
         when(passwordEncoder.encode("password123")).thenReturn("$2a$10$hashedValue");
         when(userRepositoryPort.save(any())).thenAnswer(inv -> inv.getArgument(0));
 
-        User result = createUserHandler.execute(new CreateUserUseCase.CreateUserCommand(
-                "Test", "User", "test@foodv.com", "password123", null, UserRole.ESTUDIANTE
-        ));
+        User result = createUserHandler.execute(buildCommand("test@foodv.com", null));
 
         assertNotEquals("password123", result.getPassword());
         assertTrue(result.getPassword().startsWith("$2a$10$"));

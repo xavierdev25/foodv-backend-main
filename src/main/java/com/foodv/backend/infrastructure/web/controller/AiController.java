@@ -2,15 +2,15 @@ package com.foodv.backend.infrastructure.web.controller;
 
 import com.foodv.backend.domain.model.ai.AiRecommendationResponse;
 import com.foodv.backend.domain.port.in.ai.GetRecommendationsUseCase;
-import com.foodv.backend.infrastructure.web.dto.ai.RecommendationRequest;
 import com.foodv.backend.infrastructure.web.dto.ai.RecommendationResponse;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
-import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -22,21 +22,26 @@ import java.util.List;
 public class AiController {
 
     private final GetRecommendationsUseCase getRecommendationsUseCase;
+    private final com.foodv.backend.domain.port.out.UserRepositoryPort userRepositoryPort;
 
-    @Operation(summary = "Recomendaciones personalizadas con IA")
+    @Operation(summary = "Recomendaciones personalizadas con IA basadas en tu perfil e historial")
     @ApiResponses({
-        @ApiResponse(responseCode = "200", description = "Recomendaciones generadas"),
-        @ApiResponse(responseCode = "401", description = "No autenticado"),
-        @ApiResponse(responseCode = "500", description = "Error en el servicio de IA")
+            @ApiResponse(responseCode = "200", description = "Recomendaciones generadas"),
+            @ApiResponse(responseCode = "401", description = "No autenticado"),
+            @ApiResponse(responseCode = "500", description = "Error en el servicio de IA")
     })
-    @PostMapping("/recommendations")
-    public ResponseEntity<RecommendationResponse> getRecommendations(@Valid @RequestBody RecommendationRequest request) {
-        GetRecommendationsUseCase.GetRecommendationsCommand command = new GetRecommendationsUseCase.GetRecommendationsCommand(
-                request.userId(),
-                request.restrictions(),
-                request.preferences(),
-                request.maxRecommendations()
-        );
+    @GetMapping("/recommendations")
+    public ResponseEntity<RecommendationResponse> getRecommendations(
+            @RequestParam(defaultValue = "5") int maxRecommendations) {
+
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        String email = auth.getName();
+        Long userId = userRepositoryPort.findByEmail(email)
+                .orElseThrow(() -> new IllegalStateException("Usuario no encontrado"))
+                .getId();
+
+        GetRecommendationsUseCase.GetRecommendationsCommand command =
+                new GetRecommendationsUseCase.GetRecommendationsCommand(userId, maxRecommendations);
 
         AiRecommendationResponse result = getRecommendationsUseCase.execute(command);
 
@@ -51,12 +56,10 @@ public class AiController {
                 ))
                 .toList();
 
-        RecommendationResponse response = new RecommendationResponse(
+        return ResponseEntity.ok(new RecommendationResponse(
                 result.getUserId(),
                 dtos,
                 result.getGeneratedBy()
-        );
-
-        return ResponseEntity.ok(response);
+        ));
     }
 }

@@ -20,11 +20,14 @@ public class AiServiceAdapter implements AiRecommendationPort {
 
     private final RestClient restClient;
     private final String aiServiceUrl;
+    private final String aiSecretKey;
 
     public AiServiceAdapter(RestClient restClient,
-                            @Value("${ai.service.url:http://localhost:8001}") String aiServiceUrl) {
+                            @Value("${ai.service.url:http://localhost:8001}") String aiServiceUrl,
+                            @Value("${ai.service.secret-key:}") String aiSecretKey) {
         this.restClient = restClient;
         this.aiServiceUrl = aiServiceUrl;
+        this.aiSecretKey = aiSecretKey;
     }
 
     @Override
@@ -52,6 +55,7 @@ public class AiServiceAdapter implements AiRecommendationPort {
             Map<String, Object> response = restClient.post()
                     .uri(aiServiceUrl + "/api/ai/recommendations")
                     .contentType(MediaType.APPLICATION_JSON)
+                    .header("X-API-Key", aiSecretKey)
                     .body(requestBody)
                     .retrieve()
                     .body(Map.class);
