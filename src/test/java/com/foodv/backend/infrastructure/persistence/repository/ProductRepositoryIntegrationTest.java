@@ -12,6 +12,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.test.context.jdbc.Sql;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
@@ -23,6 +24,7 @@ import static org.junit.jupiter.api.Assertions.*;
 @SpringBootTest
 @ActiveProfiles("test")
 @Transactional
+@Sql(scripts = "/db/seed-test-data.sql", executionPhase = Sql.ExecutionPhase.BEFORE_TEST_CLASS)
 @DisplayName("ProductJpaRepository - Integración con PostgreSQL real")
 class ProductRepositoryIntegrationTest {
 
@@ -38,10 +40,11 @@ class ProductRepositoryIntegrationTest {
 
     @BeforeEach
     void setUp() {
+        // Buscar store existente o usar ID 1 si no hay ninguno en BD limpia de CI
         testStoreId = storeJpaRepository.findAll().stream()
                 .findFirst()
                 .map(s -> s.getId())
-                .orElseThrow(() -> new IllegalStateException("No hay stores en la BD para el test."));
+                .orElse(1L);
     }
 
     private ProductEntity buildProduct(String nombre, ProductCategory categoria, BigDecimal precio) {
