@@ -1,0 +1,27 @@
+meta {
+  name: Actualizar Perfil
+  type: http
+  seq: 3
+}
+
+put {
+  url: {{baseUrl}}/users/{{userId}}
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{accessToken}}
+}
+
+body:json {
+  {
+    "nombres": "Xavier",
+    "apellidos": "David",
+    "telefono": "999999999",
+    "preferences": ["pollo", "pizza", "ensalada"],
+    "restrictions": ["SIN_LACTOSA"],
+    "budgetRange": "MEDIO",
+    "cuisineTypes": ["criolla", "italiana"]
+  }
+}

@@ -1,0 +1,14 @@
+meta {
+  name: Historial Estado
+  type: http
+  seq: 4
+}
+
+get {
+  url: {{baseUrl}}/orders/{{orderId}}/history
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{accessToken}}
+}

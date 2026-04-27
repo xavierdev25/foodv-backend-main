@@ -1,0 +1,14 @@
+meta {
+  name: Obtener Producto
+  type: http
+  seq: 4
+}
+
+get {
+  url: {{baseUrl}}/products/{{productId}}
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{accessToken}}
+}
