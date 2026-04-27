@@ -57,33 +57,33 @@ services:
       timeout: 5s
       retries: 5
 
-# ── FoodV AI Service ─────────────────────
-ai-service:
-  build:
-    context: ../foodv-ai-service
-    dockerfile: Dockerfile
-  container_name: foodv-ai-service
-  restart: unless-stopped
-  environment:
-    OLLAMA_HOST: ${OLLAMA_HOST:-http://host.docker.internal:11434}
-    AI_SERVICE_PORT: 8001
-    ALLOWED_ORIGINS: ${ALLOWED_ORIGINS:-http://localhost:8080}
-    API_SECRET_KEY: ${AI_SERVICE_SECRET_KEY:-change-me-in-production}
-    GROQ_API_KEY: ${GROQ_API_KEY:-}
-    REDIS_URL: redis://foodv-redis:6379
-    AI_CACHE_TTL_SECONDS: ${AI_CACHE_TTL_SECONDS:-300}
-  ports:
-    - "8001:8001"
-  depends_on:
-    redis:
-      condition: service_healthy
-  networks:
-    - foodv-network
-  healthcheck:
-    test: ["CMD", "curl", "-f", "http://localhost:8001/health"]
-    interval: 30s
-    timeout: 10s
-    retries: 3
+  # ── FoodV AI Service ─────────────────────
+  ai-service:
+    build:
+      context: ../foodv-ai-service
+      dockerfile: Dockerfile
+    container_name: foodv-ai-service
+    restart: unless-stopped
+    environment:
+      OLLAMA_HOST: ${OLLAMA_HOST:-http://host.docker.internal:11434}
+      AI_SERVICE_PORT: 8001
+      ALLOWED_ORIGINS: ${ALLOWED_ORIGINS:-http://localhost:8080}
+      API_SECRET_KEY: ${AI_SERVICE_SECRET_KEY:-change-me-in-production}
+      GROQ_API_KEY: ${GROQ_API_KEY:-}
+      REDIS_URL: redis://foodv-redis:6379
+      AI_CACHE_TTL_SECONDS: ${AI_CACHE_TTL_SECONDS:-300}
+    ports:
+      - "8001:8001"
+    depends_on:
+      redis:
+        condition: service_healthy
+    networks:
+      - foodv-network
+    healthcheck:
+      test: [ "CMD", "curl", "-f", "http://localhost:8001/health" ]
+      interval: 30s
+      timeout: 10s
+      retries: 3
 
 volumes:
   postgres_data:

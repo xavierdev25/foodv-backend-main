@@ -4,9 +4,8 @@ meta {
   seq: 1
 }
 
-post {
+get {
   url: {{baseUrl}}/ai/recommendations
-  body: json
   auth: bearer
 }
 
@@ -14,11 +13,6 @@ auth:bearer {
   token: {{accessToken}}
 }
 
-body:json {
-  {
-    "userId": 1,
-    "restrictions": ["VEGETARIANO"],
-    "preferences": ["económico", "saludable"],
-    "maxRecommendations": 3
-  }
+params:query {
+  maxRecommendations: 5
 }

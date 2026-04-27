@@ -1,0 +1,22 @@
+meta {
+  name: Feedback Recomendacion
+  type: http
+  seq: 2
+}
+
+post {
+  url: {{baseUrl}}/ai/recommendations/feedback
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{accessToken}}
+}
+
+body:json {
+  {
+    "productId": {{feedbackProductId}},
+    "liked": true
+  }
+}

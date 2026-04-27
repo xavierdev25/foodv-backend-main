@@ -12,11 +12,21 @@ post {
 
 body:json {
   {
-    "nombres": "Test",
-    "apellidos": "Usuario",
-    "email": "test@foodv.com",
+    "nombres": "Xavier",
+    "apellidos": "David",
+    "email": "xavier@foodv.com",
     "password": "TestPass123",
     "telefono": "999999999",
-    "role": "ESTUDIANTE"
+    "role": "ESTUDIANTE",
+    "preferences": ["pollo", "arroz", "menú ejecutivo"],
+    "restrictions": [],
+    "budgetRange": "MEDIO",
+    "cuisineTypes": ["criolla", "china"]
+  }
+}
+
+script:after-response {
+  if (res.status === 201) {
+    bru.setEnvVar("userId", res.body.id);
   }
 }

@@ -1,0 +1,14 @@
+meta {
+  name: Ordenes por Usuario
+  type: http
+  seq: 5
+}
+
+get {
+  url: {{baseUrl}}/orders/user/{{userId}}
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{accessToken}}
+}
