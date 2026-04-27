@@ -13,19 +13,19 @@ post {
 body:json {
   {
     "nombres": "Xavier",
-    "apellidos": "David",
-    "email": "xavier@foodv.com",
+    "apellidos": "Montaño",
+    "email": "xavier@gmail.com",
     "password": "TestPass123",
-    "telefono": "999999999",
+    "telefono": "999999998",
     "role": "ESTUDIANTE",
-    "preferences": ["pollo", "arroz", "menú ejecutivo"],
-    "restrictions": [],
+    "preferences": ["pollo", "arroz chaufa", "menú ejecutivo"],
+    "restrictions": ["cebolla china"],
     "budgetRange": "MEDIO",
-    "cuisineTypes": ["criolla", "china"]
+    "cuisineTypes": ["criolla"]
   }
 }
 
-script:after-response {
+script:post-response {
   if (res.status === 201) {
     bru.setEnvVar("userId", res.body.id);
   }

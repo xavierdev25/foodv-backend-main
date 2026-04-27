@@ -1,7 +1,7 @@
 meta {
   name: Login
   type: http
-  seq: 1
+  seq: 10
 }
 
 post {
@@ -17,9 +17,14 @@ body:json {
   }
 }
 
-script:after-response {
+script:post-response {
   if (res.status === 200) {
     bru.setEnvVar("accessToken", res.body.accessToken);
     bru.setEnvVar("refreshToken", res.body.refreshToken);
   }
+}
+
+settings {
+  encodeUrl: true
+  timeout: 0
 }

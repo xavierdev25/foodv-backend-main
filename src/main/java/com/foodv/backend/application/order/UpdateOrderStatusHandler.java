@@ -27,12 +27,13 @@ public class UpdateOrderStatusHandler implements UpdateOrderStatusUseCase {
     private final PushNotificationPort pushNotificationPort;
 
     @Override
-    public Order execute(Long orderId, OrderStatus newStatus) {
+    public Order execute(Long orderId, OrderStatus newStatus, Long changedBy) {
         Order existing = orderRepositoryPort.findById(orderId)
                 .orElseThrow(() -> new EntityNotFoundException("Orden no encontrada"));
 
         if (!existing.getStatus().canTransitionTo(newStatus)) {
-            throw new IllegalArgumentException("Transición de estado inválida: " + existing.getStatus() + " -> " + newStatus);
+            throw new IllegalArgumentException(
+                    "Transición de estado inválida: " + existing.getStatus() + " -> " + newStatus);
         }
 
         Order order = Order.builder()
@@ -53,9 +54,9 @@ public class UpdateOrderStatusHandler implements UpdateOrderStatusUseCase {
         orderStatusHistoryRepository.save(OrderStatusHistoryEntity.builder()
                 .orderId(order.getId())
                 .status(newStatus)
-                .changedBy(null)
-                .notas("Estado actualizado a " + newStatus.name())
-                .creadoEn(java.time.LocalDateTime.now())
+                .changedBy(changedBy)
+                .notas("Estado actualizado a " + traduccirEstado(newStatus))
+                .creadoEn(LocalDateTime.now())
                 .build());
 
         NotificationEvent event = NotificationEvent.builder()
@@ -63,7 +64,7 @@ public class UpdateOrderStatusHandler implements UpdateOrderStatusUseCase {
                 .orderId(updatedOrder.getId())
                 .userId(updatedOrder.getUserId())
                 .storeId(updatedOrder.getStoreId())
-                .message("Tu orden cambió de estado a: " + newStatus.name())
+                .message("Tu orden cambió de estado a: " + traduccirEstado(newStatus))
                 .payload(updatedOrder)
                 .timestamp(LocalDateTime.now())
                 .build();
@@ -77,10 +78,20 @@ public class UpdateOrderStatusHandler implements UpdateOrderStatusUseCase {
             metricsService.recordOrderCancelled();
         }
 
-        String title = "Actualización de tu pedido";
-        String body = "Tu pedido ahora está en estado: " + newStatus.name();
+        String title = "Actualización de tu pedido #" + order.getId();
+        String body = "Tu pedido ahora está: " + traduccirEstado(newStatus);
         pushNotificationPort.sendToUser(String.valueOf(order.getUserId()), title, body);
 
         return updatedOrder;
+    }
+
+    private String traduccirEstado(OrderStatus status) {
+        return switch (status) {
+            case PENDIENTE -> "Pendiente";
+            case PREPARANDO -> "En preparación";
+            case EN_CAMINO -> "En camino";
+            case ENTREGADO -> "Entregado";
+            case CANCELADO -> "Cancelado";
+        };
     }
 }

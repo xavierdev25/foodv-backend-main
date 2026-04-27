@@ -6,9 +6,14 @@ meta {
 
 get {
   url: {{baseUrl}}/orders/user/{{userId}}
+  body: none
   auth: bearer
 }
 
 auth:bearer {
   token: {{accessToken}}
+}
+
+vars:pre-request {
+  userId: 2
 }

@@ -18,15 +18,7 @@ import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.DeleteMapping;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.PutMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestHeader;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 import com.foodv.backend.infrastructure.persistence.repository.UserJpaRepository;
 import com.foodv.backend.infrastructure.persistence.adapter.UserEntityMapper;
 
@@ -81,19 +73,24 @@ public class UserController {
         return ResponseEntity.status(201).body(mapper.toResponse(user));
     }
 
-    @Operation(summary = "Listar usuarios")
+    @Operation(summary = "Listar usuarios paginado")
     @ApiResponses({
-        @ApiResponse(responseCode = "200", description = "Lista de usuarios"),
-        @ApiResponse(responseCode = "403", description = "Acceso denegado")
+            @ApiResponse(responseCode = "200", description = "Página de usuarios"),
+            @ApiResponse(responseCode = "403", description = "Acceso denegado")
     })
     @GetMapping
-    public ResponseEntity<List<UserResponse>> findAll() {
-        return ResponseEntity.ok(
-                findUserUseCase.findAll()
-                        .stream()
-                        .map(mapper::toResponse)
-                        .toList()
-        );
+    public ResponseEntity<org.springframework.data.domain.Page<UserResponse>> findAll(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "20") int size) {
+        org.springframework.data.domain.Pageable pageable =
+                org.springframework.data.domain.PageRequest.of(page, size,
+                        org.springframework.data.domain.Sort.by("id"));
+        var users = findUserUseCase.findAll();
+        int start = (int) pageable.getOffset();
+        int end = Math.min(start + pageable.getPageSize(), users.size());
+        var pageContent = users.subList(start, end).stream().map(mapper::toResponse).toList();
+        return ResponseEntity.ok(new org.springframework.data.domain.PageImpl<>(
+                pageContent, pageable, users.size()));
     }
 
     @Operation(summary = "Obtener usuario")
