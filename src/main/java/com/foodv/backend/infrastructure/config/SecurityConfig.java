@@ -33,41 +33,55 @@ public class SecurityConfig {
                 .sessionManagement(session -> session
                         .sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
-                        // Públicos
-                        .requestMatchers("/auth/**", "/auth/logout", "/actuator/health", "/actuator/info").permitAll()
+                        // Públicos sin autenticación
+                        .requestMatchers("/auth/**").permitAll()
+                        .requestMatchers("/actuator/health", "/actuator/info", "/actuator/prometheus").permitAll()
                         .requestMatchers("/swagger-ui/**", "/swagger-ui.html", "/api-docs/**").permitAll()
-                        // Users — solo ADMIN
+                        .requestMatchers("/payments/webhook").permitAll()
+
+                        // Users — rutas propias (cualquier autenticado)
+                        .requestMatchers(HttpMethod.GET, "/users/me").authenticated()
+                        .requestMatchers(HttpMethod.PUT, "/users/me/password").authenticated()
+
+                        // Users — administración (solo ADMIN)
                         .requestMatchers(HttpMethod.GET, "/users/**").hasRole("ADMIN")
                         .requestMatchers(HttpMethod.POST, "/users/**").hasRole("ADMIN")
                         .requestMatchers(HttpMethod.PUT, "/users/**").hasRole("ADMIN")
                         .requestMatchers(HttpMethod.DELETE, "/users/**").hasRole("ADMIN")
-                        // Aulas — lectura pública autenticada, escritura solo ADMIN
+
+                        // Aulas
                         .requestMatchers(HttpMethod.GET, "/aulas/**").authenticated()
                         .requestMatchers(HttpMethod.POST, "/aulas/**").hasRole("ADMIN")
                         .requestMatchers(HttpMethod.PUT, "/aulas/**").hasRole("ADMIN")
                         .requestMatchers(HttpMethod.DELETE, "/aulas/**").hasRole("ADMIN")
-                        // Stores — lectura pública autenticada, escritura ADMIN o COMERCIO
+
+                        // Stores
                         .requestMatchers(HttpMethod.GET, "/stores/**").authenticated()
                         .requestMatchers(HttpMethod.POST, "/stores/**").hasAnyRole("ADMIN", "COMERCIO")
                         .requestMatchers(HttpMethod.PUT, "/stores/**").hasAnyRole("ADMIN", "COMERCIO")
                         .requestMatchers(HttpMethod.DELETE, "/stores/**").hasRole("ADMIN")
-                        // Products — lectura pública autenticada, escritura COMERCIO o ADMIN
+
+                        // Products
                         .requestMatchers(HttpMethod.GET, "/products/**").authenticated()
                         .requestMatchers(HttpMethod.POST, "/products/**").hasAnyRole("ADMIN", "COMERCIO")
                         .requestMatchers(HttpMethod.PUT, "/products/**").hasAnyRole("ADMIN", "COMERCIO")
                         .requestMatchers(HttpMethod.DELETE, "/products/**").hasAnyRole("ADMIN", "COMERCIO")
-                        // Orders — ESTUDIANTE puede crear, REPARTIDOR y COMERCIO pueden actualizar estado
+
+                        // Orders
                         .requestMatchers(HttpMethod.POST, "/orders").hasAnyRole("ESTUDIANTE", "ADMIN")
                         .requestMatchers(HttpMethod.GET, "/orders/**").authenticated()
                         .requestMatchers(HttpMethod.PATCH, "/orders/**").hasAnyRole("COMERCIO", "REPARTIDOR", "ADMIN")
-                        // Payments — autenticado
-                        .requestMatchers("/payments/webhook").permitAll()
+
+                        // Payments
                         .requestMatchers("/payments/**").authenticated()
-                        // AI — autenticado
+
+                        // AI
                         .requestMatchers("/ai/**").authenticated()
-                        // Images — solo ADMIN y COMERCIO
+
+                        // Images
                         .requestMatchers(HttpMethod.POST, "/images/**").hasAnyRole("ADMIN", "COMERCIO")
                         .requestMatchers(HttpMethod.DELETE, "/images/**").hasAnyRole("ADMIN", "COMERCIO")
+
                         // Todo lo demás requiere autenticación
                         .anyRequest().authenticated()
                 )

@@ -24,8 +24,8 @@ public class CreateStoreHandler implements CreateStoreUseCase {
         User owner = userRepositoryPort.findById(command.ownerId())
                 .orElseThrow(() -> new EntityNotFoundException("Usuario no encontrado"));
 
-        if (owner.getRole() != UserRole.COMERCIO) {
-            throw new IllegalArgumentException("El usuario no tiene rol COMERCIO");
+        if (owner.getRole() != UserRole.COMERCIO && owner.getRole() != UserRole.ADMIN) {
+            throw new IllegalArgumentException("El usuario debe tener rol COMERCIO o ADMIN para crear una tienda");
         }
 
         if (storeRepositoryPort.existsByOwnerId(command.ownerId())) {
@@ -37,7 +37,7 @@ public class CreateStoreHandler implements CreateStoreUseCase {
                 .descripcion(command.descripcion())
                 .telefono(command.telefono())
                 .ownerId(command.ownerId())
-                .ownerRole(UserRole.COMERCIO)
+                .ownerRole(owner.getRole())
                 .activo(true)
                 .creadoEn(LocalDateTime.now())
                 .build();

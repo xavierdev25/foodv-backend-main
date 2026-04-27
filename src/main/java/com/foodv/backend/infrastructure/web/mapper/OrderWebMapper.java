@@ -9,6 +9,8 @@ import com.foodv.backend.infrastructure.web.dto.order.OrderItemResponse;
 import com.foodv.backend.infrastructure.web.dto.order.OrderResponse;
 import org.mapstruct.Mapper;
 
+import java.util.List;
+
 @Mapper(componentModel = "spring")
 public interface OrderWebMapper {
 
@@ -19,4 +21,17 @@ public interface OrderWebMapper {
     CreateOrderUseCase.CreateOrderCommand toCommand(CreateOrderRequest request);
 
     CreateOrderUseCase.OrderItemCommand toItemCommand(OrderItemRequest request);
+
+    default CreateOrderUseCase.CreateOrderCommand toCommandWithUser(CreateOrderRequest request, Long userId) {
+        List<CreateOrderUseCase.OrderItemCommand> items = request.items().stream()
+                .map(i -> new CreateOrderUseCase.OrderItemCommand(i.productId(), i.cantidad()))
+                .toList();
+        return new CreateOrderUseCase.CreateOrderCommand(
+                userId,
+                request.storeId(),
+                request.aulaId(),
+                items,
+                request.notas()
+        );
+    }
 }

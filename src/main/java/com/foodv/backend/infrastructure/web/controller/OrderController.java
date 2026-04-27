@@ -23,6 +23,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.data.domain.*;
 import org.springframework.web.bind.annotation.*;
 import com.foodv.backend.infrastructure.config.JwtService;
+import com.foodv.backend.domain.port.out.UserRepositoryPort;
 
 import java.util.List;
 
@@ -39,17 +40,24 @@ public class OrderController {
     private final OrderWebMapper mapper;
     private final OrderStatusHistoryRepository orderStatusHistoryRepository;
     private final JwtService jwtService;
+    private final UserRepositoryPort userRepositoryPort;
 
     @Operation(summary = "Crear orden")
     @ApiResponses({
-        @ApiResponse(responseCode = "201", description = "Orden creada"),
-        @ApiResponse(responseCode = "400", description = "Datos inválidos"),
-        @ApiResponse(responseCode = "401", description = "No autenticado"),
-        @ApiResponse(responseCode = "404", description = "Recurso no encontrado")
+            @ApiResponse(responseCode = "201", description = "Orden creada"),
+            @ApiResponse(responseCode = "400", description = "Datos inválidos"),
+            @ApiResponse(responseCode = "401", description = "No autenticado"),
+            @ApiResponse(responseCode = "404", description = "Recurso no encontrado")
     })
     @PostMapping
-    public ResponseEntity<OrderResponse> create(@Valid @RequestBody CreateOrderRequest request) {
-        Order order = createOrderUseCase.execute(mapper.toCommand(request));
+    public ResponseEntity<OrderResponse> create(
+            @Valid @RequestBody CreateOrderRequest request,
+            @RequestHeader("Authorization") String authHeader) {
+        String email = jwtService.extractEmail(authHeader.substring(7));
+        Long userId = userRepositoryPort.findByEmail(email)
+                .orElseThrow(() -> new IllegalStateException("Usuario no encontrado"))
+                .getId();
+        Order order = createOrderUseCase.execute(mapper.toCommandWithUser(request, userId));
         return ResponseEntity.status(HttpStatus.CREATED).body(mapper.toResponse(order));
     }
 
@@ -116,16 +124,23 @@ public class OrderController {
         return ResponseEntity.ok(responses);
     }
 
-    @Operation(summary = "Cambiar estado")
+    @Operation(summary = "Cambiar estado de orden")
     @ApiResponses({
-        @ApiResponse(responseCode = "200", description = "Estado actualizado"),
-        @ApiResponse(responseCode = "400", description = "Transición inválida"),
-        @ApiResponse(responseCode = "403", description = "Acceso denegado"),
-        @ApiResponse(responseCode = "404", description = "Orden no encontrada")
+            @ApiResponse(responseCode = "200", description = "Estado actualizado"),
+            @ApiResponse(responseCode = "400", description = "Transición inválida"),
+            @ApiResponse(responseCode = "403", description = "Acceso denegado"),
+            @ApiResponse(responseCode = "404", description = "Orden no encontrada")
     })
     @PatchMapping("/{id}/status")
-    public ResponseEntity<OrderResponse> updateStatus(@PathVariable Long id, @Valid @RequestBody UpdateOrderStatusRequest request) {
-        Order order = updateOrderStatusUseCase.execute(id, request.status());
+    public ResponseEntity<OrderResponse> updateStatus(
+            @PathVariable Long id,
+            @Valid @RequestBody UpdateOrderStatusRequest request,
+            @RequestHeader("Authorization") String authHeader) {
+        String email = jwtService.extractEmail(authHeader.substring(7));
+        Long changedBy = userRepositoryPort.findByEmail(email)
+                .orElseThrow(() -> new IllegalStateException("Usuario no encontrado"))
+                .getId();
+        Order order = updateOrderStatusUseCase.execute(id, request.status(), changedBy);
         return ResponseEntity.ok(mapper.toResponse(order));
     }
 
