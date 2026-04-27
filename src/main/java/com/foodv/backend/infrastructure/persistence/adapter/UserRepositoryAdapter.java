@@ -60,4 +60,9 @@ public class UserRepositoryAdapter implements UserRepositoryPort {
             jpaRepository.save(entity);
         });
     }
+
+    @Override
+    public Optional<User> findByIdWithPreferences(Long id) {
+        return findById(id);
+    }
 }
