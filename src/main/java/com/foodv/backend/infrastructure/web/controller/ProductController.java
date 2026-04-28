@@ -1,11 +1,18 @@
 package com.foodv.backend.infrastructure.web.controller;
 
+import com.foodv.backend.domain.common.PageQuery;
+import com.foodv.backend.domain.common.PagedResult;
 import com.foodv.backend.domain.model.product.Product;
 import com.foodv.backend.domain.model.product.ProductCategory;
+import com.foodv.backend.domain.model.user.User;
+import com.foodv.backend.domain.model.user.UserRole;
 import com.foodv.backend.domain.port.in.product.CreateProductUseCase;
 import com.foodv.backend.domain.port.in.product.DeleteProductUseCase;
 import com.foodv.backend.domain.port.in.product.FindProductUseCase;
 import com.foodv.backend.domain.port.in.product.UpdateProductUseCase;
+import com.foodv.backend.infrastructure.security.AuthenticatedUserResolver;
+import com.foodv.backend.infrastructure.security.OwnershipService;
+import com.foodv.backend.infrastructure.web.dto.common.PageResponse;
 import com.foodv.backend.infrastructure.web.dto.product.CreateProductRequest;
 import com.foodv.backend.infrastructure.web.dto.product.ProductResponse;
 import com.foodv.backend.infrastructure.web.dto.product.UpdateProductRequest;
@@ -18,11 +25,10 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.data.domain.*;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.web.bind.annotation.*;
 
 import java.math.BigDecimal;
-import java.util.List;
 
 @Tag(name = "Productos")
 @RestController
@@ -35,112 +41,94 @@ public class ProductController {
     private final UpdateProductUseCase updateProductUseCase;
     private final DeleteProductUseCase deleteProductUseCase;
     private final ProductWebMapper mapper;
+    private final AuthenticatedUserResolver currentUser;
+    private final OwnershipService ownershipService;
 
-    @Operation(summary = "Crear producto")
+    @Operation(summary = "Crear producto en mi tienda (sólo COMERCIO/ADMIN)")
     @ApiResponses({
-        @ApiResponse(responseCode = "201", description = "Producto creado"),
-        @ApiResponse(responseCode = "400", description = "Datos inválidos"),
-        @ApiResponse(responseCode = "403", description = "Acceso denegado")
+            @ApiResponse(responseCode = "201", description = "Producto creado"),
+            @ApiResponse(responseCode = "400", description = "Datos inválidos"),
+            @ApiResponse(responseCode = "401", description = "No autenticado"),
+            @ApiResponse(responseCode = "403", description = "Sin permisos")
     })
     @PostMapping
     public ResponseEntity<ProductResponse> create(@Valid @RequestBody CreateProductRequest request) {
-        Product product = createProductUseCase.execute(mapper.toCommand(request));
+        User me = currentUser.currentUser();
+        Long storeId = me.getRole() == UserRole.ADMIN
+                ? ownershipService.resolveStoreIdForUser(me)
+                : ownershipService.resolveStoreIdForUser(me);
+        Product product = createProductUseCase.execute(mapper.toCommandWithStore(request, storeId));
         return ResponseEntity.status(HttpStatus.CREATED).body(mapper.toResponse(product));
     }
 
     @Operation(summary = "Listar productos paginado")
-    @ApiResponses({
-        @ApiResponse(responseCode = "200", description = "Página de productos"),
-        @ApiResponse(responseCode = "401", description = "No autenticado")
-    })
     @GetMapping
-    public ResponseEntity<Page<ProductResponse>> findAll(
+    public ResponseEntity<PageResponse<ProductResponse>> findAll(
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "20") int size,
             @RequestParam(defaultValue = "id") String sortBy
     ) {
-        Pageable pageable = PageRequest.of(page, size, Sort.by(sortBy));
-        return ResponseEntity.ok(findProductUseCase.findAllPaginated(pageable).map(mapper::toResponse));
+        return ResponseEntity.ok(PageResponse.from(
+                findProductUseCase.findAllPaginated(new PageQuery(page, size, sortBy, true))
+                        .map(mapper::toResponse)
+        ));
     }
 
     @Operation(summary = "Obtener producto")
-    @ApiResponses({
-        @ApiResponse(responseCode = "200", description = "Producto encontrado"),
-        @ApiResponse(responseCode = "401", description = "No autenticado"),
-        @ApiResponse(responseCode = "404", description = "Producto no encontrado")
-    })
     @GetMapping("/{id}")
     public ResponseEntity<ProductResponse> findById(@PathVariable Long id) {
         Product product = findProductUseCase.findById(id);
         return ResponseEntity.ok(mapper.toResponse(product));
     }
 
-    @Operation(summary = "Productos por tienda")
-    @ApiResponses({
-        @ApiResponse(responseCode = "200", description = "Productos de la tienda"),
-        @ApiResponse(responseCode = "401", description = "No autenticado")
-    })
+    @Operation(summary = "Productos por tienda paginado")
     @GetMapping("/store/{storeId}")
-    public ResponseEntity<Page<ProductResponse>> findByStoreId(
+    public ResponseEntity<PageResponse<ProductResponse>> findByStoreId(
             @PathVariable Long storeId,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "20") int size,
             @RequestParam(defaultValue = "id") String sortBy
     ) {
-        Pageable pageable = PageRequest.of(page, size, Sort.by(sortBy));
-        return ResponseEntity.ok(findProductUseCase.findByStoreIdPaginated(storeId, pageable).map(mapper::toResponse));
+        return ResponseEntity.ok(PageResponse.from(
+                findProductUseCase.findByStoreIdPaginated(storeId, new PageQuery(page, size, sortBy, true))
+                        .map(mapper::toResponse)
+        ));
     }
 
-    @Operation(summary = "Productos activos por tienda")
-    @GetMapping("/store/{storeId}/activos")
-    public ResponseEntity<List<ProductResponse>> findByStoreIdActivos(@PathVariable Long storeId) {
-        List<ProductResponse> responses = findProductUseCase.findByStoreIdActivos(storeId).stream()
-                .map(mapper::toResponse)
-                .toList();
-        return ResponseEntity.ok(responses);
-    }
-
-    @Operation(summary = "Productos por categoría")
+    @Operation(summary = "Productos por categoría paginado")
     @GetMapping("/categoria/{categoria}")
-    public ResponseEntity<List<ProductResponse>> findByCategoria(@PathVariable ProductCategory categoria) {
-        List<ProductResponse> responses = findProductUseCase.findByCategoria(categoria).stream()
-                .map(mapper::toResponse)
-                .toList();
-        return ResponseEntity.ok(responses);
+    public ResponseEntity<PageResponse<ProductResponse>> findByCategoria(
+            @PathVariable ProductCategory categoria,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "20") int size,
+            @RequestParam(defaultValue = "id") String sortBy
+    ) {
+        return ResponseEntity.ok(PageResponse.from(
+                findProductUseCase.findByCategoriaPaginated(categoria, new PageQuery(page, size, sortBy, true))
+                        .map(mapper::toResponse)
+        ));
     }
 
-    @Operation(summary = "Actualizar producto")
-    @ApiResponses({
-        @ApiResponse(responseCode = "200", description = "Producto actualizado"),
-        @ApiResponse(responseCode = "400", description = "Datos inválidos"),
-        @ApiResponse(responseCode = "403", description = "Acceso denegado"),
-        @ApiResponse(responseCode = "404", description = "Producto no encontrado")
-    })
+    @Operation(summary = "Actualizar producto (sólo dueño o ADMIN)")
     @PutMapping("/{id}")
-    public ResponseEntity<ProductResponse> update(@PathVariable Long id, @Valid @RequestBody UpdateProductRequest request) {
+    public ResponseEntity<ProductResponse> update(@PathVariable Long id,
+                                                  @Valid @RequestBody UpdateProductRequest request) {
+        ownershipService.requireProductOwnerOrAdmin(currentUser.currentUser(), id);
         Product product = updateProductUseCase.execute(id, mapper.toCommand(request));
         return ResponseEntity.ok(mapper.toResponse(product));
     }
 
-    @Operation(summary = "Eliminar producto")
-    @ApiResponses({
-        @ApiResponse(responseCode = "204", description = "Producto eliminado"),
-        @ApiResponse(responseCode = "403", description = "Acceso denegado"),
-        @ApiResponse(responseCode = "404", description = "Producto no encontrado")
-    })
+    @Operation(summary = "Eliminar producto (sólo dueño o ADMIN)")
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> delete(@PathVariable Long id) {
+        ownershipService.requireProductOwnerOrAdmin(currentUser.currentUser(), id);
         deleteProductUseCase.execute(id);
         return ResponseEntity.noContent().build();
     }
 
     @Operation(summary = "Buscar productos con filtros")
-    @ApiResponses({
-        @ApiResponse(responseCode = "200", description = "Resultados de búsqueda"),
-        @ApiResponse(responseCode = "401", description = "No autenticado")
-    })
     @GetMapping("/search")
-    public ResponseEntity<Page<ProductResponse>> search(
+    public ResponseEntity<PageResponse<ProductResponse>> search(
             @RequestParam(required = false) String nombre,
             @RequestParam(required = false) ProductCategory categoria,
             @RequestParam(required = false) Long storeId,
@@ -150,10 +138,15 @@ public class ProductController {
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "20") int size,
             @RequestParam(defaultValue = "nombre") String sortBy) {
-        Pageable pageable = PageRequest.of(page, size, Sort.by(sortBy));
-        return ResponseEntity.ok(
-                findProductUseCase.search(nombre, categoria, storeId, precioMin, precioMax, disponible, pageable)
-                        .map(mapper::toResponse)
-        );
+        if (precioMin != null && precioMin.compareTo(BigDecimal.ZERO) < 0) {
+            throw new IllegalArgumentException("precioMin no puede ser negativo");
+        }
+        if (precioMax != null && precioMin != null && precioMax.compareTo(precioMin) < 0) {
+            throw new IllegalArgumentException("precioMax debe ser >= precioMin");
+        }
+        PagedResult<Product> result = findProductUseCase.search(
+                nombre, categoria, storeId, precioMin, precioMax, disponible,
+                new PageQuery(page, size, sortBy, true));
+        return ResponseEntity.ok(PageResponse.from(result.map(mapper::toResponse)));
     }
 }

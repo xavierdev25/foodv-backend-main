@@ -31,8 +31,9 @@ public class OrderEntity {
     @Column(name = "aula_id", nullable = false)
     private Long aulaId;
 
-    @OneToMany(cascade = CascadeType.ALL, fetch = FetchType.EAGER, orphanRemoval = true)
+    @OneToMany(cascade = CascadeType.ALL, fetch = FetchType.LAZY, orphanRemoval = true)
     @JoinColumn(name = "order_id", nullable = false)
+    @org.hibernate.annotations.BatchSize(size = 50)
     @Builder.Default
     private List<OrderItemEntity> items = new ArrayList<>();
 

@@ -1,8 +1,10 @@
 package com.foodv.backend.infrastructure.web.mapper;
 
+import com.foodv.backend.domain.common.PagedResult;
 import com.foodv.backend.domain.model.order.Order;
 import com.foodv.backend.domain.model.order.OrderItem;
 import com.foodv.backend.domain.port.in.order.CreateOrderUseCase;
+import com.foodv.backend.infrastructure.web.dto.common.PageResponse;
 import com.foodv.backend.infrastructure.web.dto.order.CreateOrderRequest;
 import com.foodv.backend.infrastructure.web.dto.order.OrderItemRequest;
 import com.foodv.backend.infrastructure.web.dto.order.OrderItemResponse;
@@ -36,5 +38,9 @@ public interface OrderWebMapper {
                 request.notas(),
                 request.propina()
         );
+    }
+
+    default PageResponse<OrderResponse> toPageResponse(PagedResult<Order> page) {
+        return PageResponse.from(page.map(this::toResponse));
     }
 }

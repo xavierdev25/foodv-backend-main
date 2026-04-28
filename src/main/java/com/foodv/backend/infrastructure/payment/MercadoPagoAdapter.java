@@ -8,10 +8,12 @@ import com.mercadopago.client.preference.PreferenceItemRequest;
 import com.mercadopago.client.preference.PreferenceRequest;
 import com.mercadopago.resources.preference.Preference;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 
 import java.util.List;
 
+@Slf4j
 @Component
 @RequiredArgsConstructor
 public class MercadoPagoAdapter implements PaymentGatewayPort {
@@ -46,14 +48,16 @@ public class MercadoPagoAdapter implements PaymentGatewayPort {
 
             return new PaymentResponse(preference.getId(), preference.getInitPoint(), PaymentStatus.PENDIENTE);
         } catch (Exception e) {
-            throw new RuntimeException("Error al crear pago en MercadoPago: " + e.getMessage());
+            log.error("Error al crear pago en MercadoPago para orden {}: {}", request.orderId(), e.getMessage());
+            throw new IllegalStateException("No fue posible crear el pago. Inténtalo más tarde.");
         }
     }
 
     @Override
     public PaymentStatus getPaymentStatus(String externalId) {
         try {
-            com.mercadopago.client.payment.PaymentClient paymentClient = new com.mercadopago.client.payment.PaymentClient();
+            com.mercadopago.client.payment.PaymentClient paymentClient =
+                    new com.mercadopago.client.payment.PaymentClient();
             com.mercadopago.resources.payment.Payment payment = paymentClient.get(Long.parseLong(externalId));
 
             return switch (payment.getStatus()) {
@@ -63,6 +67,7 @@ public class MercadoPagoAdapter implements PaymentGatewayPort {
                 default -> PaymentStatus.PENDIENTE;
             };
         } catch (Exception e) {
+            log.warn("No se pudo consultar status MercadoPago para id {}: {}", externalId, e.getMessage());
             return PaymentStatus.PENDIENTE;
         }
     }
@@ -70,10 +75,12 @@ public class MercadoPagoAdapter implements PaymentGatewayPort {
     @Override
     public boolean refundPayment(String externalId) {
         try {
-            com.mercadopago.client.payment.PaymentRefundClient refundClient = new com.mercadopago.client.payment.PaymentRefundClient();
+            com.mercadopago.client.payment.PaymentRefundClient refundClient =
+                    new com.mercadopago.client.payment.PaymentRefundClient();
             refundClient.refund(Long.parseLong(externalId));
             return true;
         } catch (Exception e) {
+            log.error("Refund MercadoPago falló para id {}: {}", externalId, e.getMessage());
             return false;
         }
     }

@@ -1,12 +1,13 @@
 package com.foodv.backend.infrastructure.persistence.adapter;
 
+import com.foodv.backend.domain.common.PageQuery;
+import com.foodv.backend.domain.common.PagedResult;
 import com.foodv.backend.domain.model.order.Order;
 import com.foodv.backend.domain.model.order.OrderStatus;
 import com.foodv.backend.domain.port.out.OrderRepositoryPort;
+import com.foodv.backend.infrastructure.common.PagingMapper;
 import com.foodv.backend.infrastructure.persistence.repository.OrderJpaRepository;
 import lombok.RequiredArgsConstructor;
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Component;
 
 import java.util.List;
@@ -30,6 +31,11 @@ public class OrderRepositoryAdapter implements OrderRepositoryPort {
     }
 
     @Override
+    public Optional<Order> findByIdWithItems(Long id) {
+        return jpaRepository.findByIdWithItems(id).map(mapper::toDomain);
+    }
+
+    @Override
     public List<Order> findByUserId(Long userId) {
         return jpaRepository.findByUserId(userId).stream().map(mapper::toDomain).toList();
     }
@@ -50,18 +56,35 @@ public class OrderRepositoryAdapter implements OrderRepositoryPort {
     }
 
     @Override
-    public Page<Order> findAllPaginated(Pageable pageable) {
-        return jpaRepository.findAll(pageable).map(mapper::toDomain);
+    public PagedResult<Order> findAllPaginated(PageQuery query) {
+        return PagingMapper.toDomain(
+                jpaRepository.findAll(PagingMapper.toPageable(query)),
+                mapper::toDomain
+        );
     }
 
     @Override
-    public Page<Order> findByUserIdPaginated(Long userId, Pageable pageable) {
-        return jpaRepository.findByUserId(userId, pageable).map(mapper::toDomain);
+    public PagedResult<Order> findByUserIdPaginated(Long userId, PageQuery query) {
+        return PagingMapper.toDomain(
+                jpaRepository.findByUserId(userId, PagingMapper.toPageable(query)),
+                mapper::toDomain
+        );
     }
 
     @Override
-    public Page<Order> findByStoreIdPaginated(Long storeId, Pageable pageable) {
-        return jpaRepository.findByStoreId(storeId, pageable).map(mapper::toDomain);
+    public PagedResult<Order> findByStoreIdPaginated(Long storeId, PageQuery query) {
+        return PagingMapper.toDomain(
+                jpaRepository.findByStoreId(storeId, PagingMapper.toPageable(query)),
+                mapper::toDomain
+        );
+    }
+
+    @Override
+    public PagedResult<Order> findByStatusPaginated(OrderStatus status, PageQuery query) {
+        return PagingMapper.toDomain(
+                jpaRepository.findByStatus(status, PagingMapper.toPageable(query)),
+                mapper::toDomain
+        );
     }
 
     @Override

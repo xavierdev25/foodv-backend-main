@@ -1,7 +1,10 @@
 package com.foodv.backend.infrastructure.persistence.adapter;
 
+import com.foodv.backend.domain.common.PageQuery;
+import com.foodv.backend.domain.common.PagedResult;
 import com.foodv.backend.domain.model.user.User;
 import com.foodv.backend.domain.port.out.UserRepositoryPort;
+import com.foodv.backend.infrastructure.common.PagingMapper;
 import com.foodv.backend.infrastructure.persistence.entity.UserEntity;
 import com.foodv.backend.infrastructure.persistence.repository.UserJpaRepository;
 import org.springframework.stereotype.Component;
@@ -36,13 +39,15 @@ public class UserRepositoryAdapter implements UserRepositoryPort {
 
     @Override
     public Optional<User> findByEmail(String email) {
-        return jpaRepository.findByEmailAndDeletedAtIsNull(email)
+        if (email == null) return Optional.empty();
+        return jpaRepository.findByEmailAndDeletedAtIsNull(email.toLowerCase().trim())
                 .map(mapper::toDomain);
     }
 
     @Override
     public boolean existsByEmail(String email) {
-        return jpaRepository.existsByEmail(email);
+        if (email == null) return false;
+        return jpaRepository.existsByEmailAndDeletedAtIsNull(email.toLowerCase().trim());
     }
 
     @Override
@@ -51,6 +56,14 @@ public class UserRepositoryAdapter implements UserRepositoryPort {
                 .stream()
                 .map(mapper::toDomain)
                 .toList();
+    }
+
+    @Override
+    public PagedResult<User> findAllPaginated(PageQuery query) {
+        return PagingMapper.toDomain(
+                jpaRepository.findAllByDeletedAtIsNull(PagingMapper.toPageable(query)),
+                mapper::toDomain
+        );
     }
 
     @Override

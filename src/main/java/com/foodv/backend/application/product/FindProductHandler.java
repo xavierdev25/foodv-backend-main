@@ -1,5 +1,7 @@
 package com.foodv.backend.application.product;
 
+import com.foodv.backend.domain.common.PageQuery;
+import com.foodv.backend.domain.common.PagedResult;
 import com.foodv.backend.domain.model.product.Product;
 import com.foodv.backend.domain.model.product.ProductCategory;
 import com.foodv.backend.domain.port.in.product.FindProductUseCase;
@@ -7,15 +9,15 @@ import com.foodv.backend.domain.port.out.ProductRepositoryPort;
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.cache.annotation.Cacheable;
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
-import java.math.BigDecimal;
+import org.springframework.transaction.annotation.Transactional;
 
+import java.math.BigDecimal;
 import java.util.List;
 
 @Service
 @RequiredArgsConstructor
+@Transactional(readOnly = true)
 public class FindProductHandler implements FindProductUseCase {
 
     private final ProductRepositoryPort productRepositoryPort;
@@ -43,25 +45,29 @@ public class FindProductHandler implements FindProductUseCase {
     }
 
     @Override
-    @Cacheable("products")
+    public PagedResult<Product> findByCategoriaPaginated(ProductCategory categoria, PageQuery query) {
+        return productRepositoryPort.findByCategoriaPaginated(categoria, query);
+    }
+
+    @Override
     public List<Product> findAll() {
         return productRepositoryPort.findAll();
     }
 
     @Override
-    public Page<Product> findAllPaginated(Pageable pageable) {
-        return productRepositoryPort.findAllPaginated(pageable);
+    public PagedResult<Product> findAllPaginated(PageQuery query) {
+        return productRepositoryPort.findAllPaginated(query);
     }
 
     @Override
-    public Page<Product> findByStoreIdPaginated(Long storeId, Pageable pageable) {
-        return productRepositoryPort.findByStoreIdPaginated(storeId, pageable);
+    public PagedResult<Product> findByStoreIdPaginated(Long storeId, PageQuery query) {
+        return productRepositoryPort.findByStoreIdPaginated(storeId, query);
     }
 
     @Override
-    public Page<Product> search(String nombre, ProductCategory categoria, Long storeId,
-                                BigDecimal precioMin, BigDecimal precioMax,
-                                Boolean disponible, Pageable pageable) {
-        return productRepositoryPort.search(nombre, categoria, storeId, precioMin, precioMax, disponible, pageable);
+    public PagedResult<Product> search(String nombre, ProductCategory categoria, Long storeId,
+                                       BigDecimal precioMin, BigDecimal precioMax,
+                                       Boolean disponible, PageQuery query) {
+        return productRepositoryPort.search(nombre, categoria, storeId, precioMin, precioMax, disponible, query);
     }
 }

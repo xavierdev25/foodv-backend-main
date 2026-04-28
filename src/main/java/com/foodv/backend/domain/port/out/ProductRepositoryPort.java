@@ -1,14 +1,11 @@
 package com.foodv.backend.domain.port.out;
 
+import com.foodv.backend.domain.common.PageQuery;
+import com.foodv.backend.domain.common.PagedResult;
 import com.foodv.backend.domain.model.product.Product;
 import com.foodv.backend.domain.model.product.ProductCategory;
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.Pageable;
 
 import java.math.BigDecimal;
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.Pageable;
-
 import java.util.List;
 import java.util.Optional;
 
@@ -24,15 +21,19 @@ public interface ProductRepositoryPort {
 
     List<Product> findByCategoria(ProductCategory categoria);
 
+    PagedResult<Product> findByCategoriaPaginated(ProductCategory categoria, PageQuery query);
+
     List<Product> findAll();
 
     void deleteById(Long id);
 
-    Page<Product> findAllPaginated(Pageable pageable);
+    PagedResult<Product> findAllPaginated(PageQuery query);
 
-    Page<Product> findByStoreIdPaginated(Long storeId, Pageable pageable);
+    PagedResult<Product> findByStoreIdPaginated(Long storeId, PageQuery query);
 
-    Page<Product> search(String nombre, ProductCategory categoria, Long storeId,
-                         BigDecimal precioMin, BigDecimal precioMax,
-                         Boolean disponible, Pageable pageable);
+    PagedResult<Product> search(String nombre, ProductCategory categoria, Long storeId,
+                                BigDecimal precioMin, BigDecimal precioMax,
+                                Boolean disponible, PageQuery query);
+
+    int decrementStock(Long productId, int cantidad);
 }

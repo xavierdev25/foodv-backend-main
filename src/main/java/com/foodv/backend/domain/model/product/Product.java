@@ -25,4 +25,5 @@ public class Product {
     private boolean activo;
     private boolean disponible;
     private LocalDateTime creadoEn;
+    private LocalDateTime actualizadoEn;
 }

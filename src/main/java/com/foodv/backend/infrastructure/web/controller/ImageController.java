@@ -1,17 +1,22 @@
 package com.foodv.backend.infrastructure.web.controller;
 
+import com.foodv.backend.domain.model.user.UserRole;
 import com.foodv.backend.domain.port.out.ImageStoragePort;
+import com.foodv.backend.infrastructure.security.AuthenticatedUserResolver;
+import com.foodv.backend.infrastructure.security.OwnershipService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
 import java.util.Map;
+import java.util.Set;
 
 @Tag(name = "Imágenes")
 @RestController
@@ -19,52 +24,86 @@ import java.util.Map;
 @RequiredArgsConstructor
 public class ImageController {
 
-    private final ImageStoragePort imageStoragePort;
+    private static final long MAX_FILE_SIZE = 5L * 1024 * 1024; // 5 MB
+    private static final Set<String> ALLOWED_MIME = Set.of(
+            "image/jpeg", "image/png", "image/webp", "image/gif"
+    );
+    private static final Set<String> ALLOWED_EXT = Set.of("jpg", "jpeg", "png", "webp", "gif");
 
-    @Operation(summary = "Subir imagen de producto")
+    private final ImageStoragePort imageStoragePort;
+    private final AuthenticatedUserResolver currentUser;
+    private final OwnershipService ownershipService;
+
+    @Operation(summary = "Subir imagen de producto (sólo dueño o ADMIN)")
     @ApiResponses({
-        @ApiResponse(responseCode = "200", description = "Imagen subida"),
-        @ApiResponse(responseCode = "400", description = "Archivo inválido"),
-        @ApiResponse(responseCode = "403", description = "Acceso denegado")
+            @ApiResponse(responseCode = "200", description = "Imagen subida"),
+            @ApiResponse(responseCode = "400", description = "Archivo inválido"),
+            @ApiResponse(responseCode = "403", description = "Acceso denegado")
     })
     @PostMapping("/products/{productId}")
     public ResponseEntity<Map<String, String>> uploadProductImage(
             @PathVariable Long productId,
             @RequestParam("file") MultipartFile file
     ) throws IOException {
-        if (file.isEmpty()) {
-            throw new IllegalArgumentException("El archivo no puede estar vacío");
-        }
-        String imageUrl = imageStoragePort.uploadImage(file.getBytes(), file.getOriginalFilename(), "foodv/products");
+        ownershipService.requireProductOwnerOrAdmin(currentUser.currentUser(), productId);
+        validateFile(file);
+        String imageUrl = imageStoragePort.uploadImage(
+                file.getBytes(), sanitizeFilename(file.getOriginalFilename()), "foodv/products");
         return ResponseEntity.ok(Map.of("url", imageUrl));
     }
 
-    @Operation(summary = "Subir imagen de tienda")
-    @ApiResponses({
-        @ApiResponse(responseCode = "200", description = "Imagen subida"),
-        @ApiResponse(responseCode = "400", description = "Archivo inválido"),
-        @ApiResponse(responseCode = "403", description = "Acceso denegado")
-    })
+    @Operation(summary = "Subir imagen de tienda (sólo dueño o ADMIN)")
     @PostMapping("/stores/{storeId}")
     public ResponseEntity<Map<String, String>> uploadStoreImage(
             @PathVariable Long storeId,
             @RequestParam("file") MultipartFile file
     ) throws IOException {
-        if (file.isEmpty()) {
-            throw new IllegalArgumentException("El archivo no puede estar vacío");
-        }
-        String imageUrl = imageStoragePort.uploadImage(file.getBytes(), file.getOriginalFilename(), "foodv/stores");
+        ownershipService.requireStoreOwnerOrAdmin(currentUser.currentUser(), storeId);
+        validateFile(file);
+        String imageUrl = imageStoragePort.uploadImage(
+                file.getBytes(), sanitizeFilename(file.getOriginalFilename()), "foodv/stores");
         return ResponseEntity.ok(Map.of("url", imageUrl));
     }
 
-    @Operation(summary = "Eliminar imagen")
-    @ApiResponses({
-        @ApiResponse(responseCode = "204", description = "Imagen eliminada"),
-        @ApiResponse(responseCode = "403", description = "Acceso denegado")
-    })
+    @Operation(summary = "Eliminar imagen por publicId (sólo ADMIN)")
     @DeleteMapping
     public ResponseEntity<Void> deleteImage(@RequestParam String publicId) {
+        if (currentUser.currentUser().getRole() != UserRole.ADMIN) {
+            throw new AccessDeniedException("Sólo ADMIN puede eliminar imágenes directamente");
+        }
+        if (publicId == null || publicId.isBlank()) {
+            throw new IllegalArgumentException("publicId requerido");
+        }
         imageStoragePort.deleteImage(publicId);
         return ResponseEntity.noContent().build();
+    }
+
+    private void validateFile(MultipartFile file) {
+        if (file == null || file.isEmpty()) {
+            throw new IllegalArgumentException("El archivo no puede estar vacío");
+        }
+        if (file.getSize() > MAX_FILE_SIZE) {
+            throw new IllegalArgumentException("El archivo excede el máximo permitido de 5MB");
+        }
+        String contentType = file.getContentType();
+        if (contentType == null || !ALLOWED_MIME.contains(contentType.toLowerCase())) {
+            throw new IllegalArgumentException("Formato no soportado. Permitidos: jpg, png, webp, gif");
+        }
+        String extension = extension(file.getOriginalFilename());
+        if (extension == null || !ALLOWED_EXT.contains(extension.toLowerCase())) {
+            throw new IllegalArgumentException("Extensión inválida. Permitidas: jpg, jpeg, png, webp, gif");
+        }
+    }
+
+    private String extension(String filename) {
+        if (filename == null) return null;
+        int dot = filename.lastIndexOf('.');
+        return dot >= 0 ? filename.substring(dot + 1) : null;
+    }
+
+    private String sanitizeFilename(String filename) {
+        if (filename == null) return "image";
+        String base = filename.replaceAll("[^a-zA-Z0-9._-]", "_");
+        return base.length() > 100 ? base.substring(base.length() - 100) : base;
     }
 }

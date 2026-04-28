@@ -3,8 +3,8 @@ package com.foodv.backend.application.user;
 import com.foodv.backend.domain.model.user.User;
 import com.foodv.backend.domain.model.user.UserRole;
 import com.foodv.backend.domain.port.in.user.CreateUserUseCase;
+import com.foodv.backend.domain.port.out.BusinessMetricsPort;
 import com.foodv.backend.domain.port.out.UserRepositoryPort;
-import com.foodv.backend.infrastructure.metrics.BusinessMetricsService;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -26,7 +26,7 @@ class CreateUserHandlerTest {
 
     @Mock private UserRepositoryPort userRepositoryPort;
     @Mock private PasswordEncoder passwordEncoder;
-    @Mock private BusinessMetricsService metricsService;
+    @Mock private BusinessMetricsPort metricsPort;
     @InjectMocks private CreateUserHandler createUserHandler;
 
     private CreateUserUseCase.CreateUserCommand buildCommand(String email, String telefono) {

@@ -1,7 +1,10 @@
 package com.foodv.backend.infrastructure.persistence.adapter;
 
+import com.foodv.backend.domain.common.PageQuery;
+import com.foodv.backend.domain.common.PagedResult;
 import com.foodv.backend.domain.model.store.Store;
 import com.foodv.backend.domain.port.out.StoreRepositoryPort;
+import com.foodv.backend.infrastructure.common.PagingMapper;
 import com.foodv.backend.infrastructure.persistence.repository.StoreJpaRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
@@ -29,12 +32,12 @@ public class StoreRepositoryAdapter implements StoreRepositoryPort {
 
     @Override
     public Optional<Store> findByOwnerId(Long ownerId) {
-        return jpaRepository.findByOwnerId(ownerId).map(mapper::toDomain);
+        return jpaRepository.findByOwnerIdAndDeletedAtIsNull(ownerId).map(mapper::toDomain);
     }
 
     @Override
     public boolean existsByOwnerId(Long ownerId) {
-        return jpaRepository.existsByOwnerId(ownerId);
+        return jpaRepository.findByOwnerIdAndDeletedAtIsNull(ownerId).isPresent();
     }
 
     @Override
@@ -44,7 +47,23 @@ public class StoreRepositoryAdapter implements StoreRepositoryPort {
 
     @Override
     public List<Store> findAllActivas() {
-        return jpaRepository.findByActivoTrue().stream().map(mapper::toDomain).toList();
+        return jpaRepository.findByActivoTrueAndDeletedAtIsNull().stream().map(mapper::toDomain).toList();
+    }
+
+    @Override
+    public PagedResult<Store> findAllPaginated(PageQuery query) {
+        return PagingMapper.toDomain(
+                jpaRepository.findAllByDeletedAtIsNull(PagingMapper.toPageable(query)),
+                mapper::toDomain
+        );
+    }
+
+    @Override
+    public PagedResult<Store> findAllActivasPaginated(PageQuery query) {
+        return PagingMapper.toDomain(
+                jpaRepository.findByActivoTrueAndDeletedAtIsNull(PagingMapper.toPageable(query)),
+                mapper::toDomain
+        );
     }
 
     @Override

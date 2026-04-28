@@ -9,7 +9,9 @@ import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
 @Service
@@ -20,6 +22,7 @@ public class CreateProductHandler implements CreateProductUseCase {
     private final StoreRepositoryPort storeRepositoryPort;
 
     @Override
+    @Transactional
     @CacheEvict(value = "products", allEntries = true)
     public Product execute(CreateProductCommand command) {
         Store store = storeRepositoryPort.findById(command.storeId())
@@ -29,15 +32,22 @@ public class CreateProductHandler implements CreateProductUseCase {
             throw new IllegalArgumentException("La tienda no está activa");
         }
 
+        if (command.precio() == null || command.precio().compareTo(BigDecimal.ZERO) <= 0) {
+            throw new IllegalArgumentException("El precio debe ser mayor a 0");
+        }
+        if (command.stock() == null || command.stock() < 0) {
+            throw new IllegalArgumentException("Stock inválido");
+        }
+
         Product product = Product.builder()
-                .nombre(command.nombre())
-                .descripcion(command.descripcion())
+                .nombre(command.nombre() == null ? null : command.nombre().trim())
+                .descripcion(command.descripcion() == null ? null : command.descripcion().trim())
                 .precio(command.precio())
                 .stock(command.stock())
                 .categoria(command.categoria())
                 .storeId(command.storeId())
                 .activo(true)
-                .disponible(true)
+                .disponible(command.stock() > 0)
                 .creadoEn(LocalDateTime.now())
                 .build();
 
