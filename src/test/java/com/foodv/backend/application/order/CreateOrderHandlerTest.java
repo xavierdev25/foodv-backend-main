@@ -9,7 +9,6 @@ import com.foodv.backend.domain.model.user.User;
 import com.foodv.backend.domain.model.user.UserRole;
 import com.foodv.backend.domain.port.in.order.CreateOrderUseCase;
 import com.foodv.backend.domain.port.out.*;
-import com.foodv.backend.infrastructure.metrics.BusinessMetricsService;
 import jakarta.persistence.EntityNotFoundException;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -26,6 +25,8 @@ import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyInt;
+import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
@@ -37,7 +38,8 @@ class CreateOrderHandlerTest {
     @Mock private UserRepositoryPort userRepositoryPort;
     @Mock private StoreRepositoryPort storeRepositoryPort;
     @Mock private AulaRepositoryPort aulaRepositoryPort;
-    @Mock private BusinessMetricsService metricsService;
+    @Mock private BusinessMetricsPort metricsPort;
+    @Mock private SecureRandomPort secureRandomPort;
 
     @InjectMocks private CreateOrderHandler createOrderHandler;
 
@@ -67,6 +69,12 @@ class CreateOrderHandlerTest {
                 .creadoEn(LocalDateTime.now()).build();
     }
 
+    private CreateOrderUseCase.CreateOrderCommand buildCommand(Long userId, Long storeId, Long aulaId,
+                                                               List<CreateOrderUseCase.OrderItemCommand> items, String notas) {
+        return new CreateOrderUseCase.CreateOrderCommand(
+                userId, storeId, aulaId, items, notas, BigDecimal.ZERO);
+    }
+
     @Test
     @DisplayName("Crear orden exitosamente calcula total correctamente")
     void crear_orden_calcula_total_correctamente() {
@@ -77,21 +85,21 @@ class CreateOrderHandlerTest {
                         .id(1L).codigo("A-101").nombre("Aula 101").activo(true).build()
         ));
         when(productRepositoryPort.findById(1L)).thenReturn(Optional.of(product));
+        when(productRepositoryPort.decrementStock(anyLong(), anyInt())).thenReturn(1);
         when(orderRepositoryPort.save(any())).thenAnswer(inv -> inv.getArgument(0));
-        when(productRepositoryPort.save(any())).thenAnswer(inv -> inv.getArgument(0));
+        when(secureRandomPort.generateConfirmationCode(anyInt())).thenReturn("1234");
 
-        CreateOrderUseCase.CreateOrderCommand command = new CreateOrderUseCase.CreateOrderCommand(
+        Order result = createOrderHandler.execute(buildCommand(
                 1L, 1L, 1L,
                 List.of(new CreateOrderUseCase.OrderItemCommand(1L, 2)),
                 "Sin ají"
-        );
-
-        Order result = createOrderHandler.execute(command);
+        ));
 
         assertNotNull(result);
         assertEquals(OrderStatus.PENDIENTE, result.getStatus());
         assertEquals(0, BigDecimal.valueOf(25.00).compareTo(result.getTotal()));
         assertEquals(1, result.getItems().size());
+        verify(metricsPort).recordOrderCreated();
     }
 
     @Test
@@ -100,7 +108,7 @@ class CreateOrderHandlerTest {
         when(userRepositoryPort.findById(99L)).thenReturn(Optional.empty());
 
         assertThrows(EntityNotFoundException.class, () ->
-                createOrderHandler.execute(new CreateOrderUseCase.CreateOrderCommand(
+                createOrderHandler.execute(buildCommand(
                         99L, 1L, 1L,
                         List.of(new CreateOrderUseCase.OrderItemCommand(1L, 1)),
                         null
@@ -120,7 +128,7 @@ class CreateOrderHandlerTest {
         when(storeRepositoryPort.findById(1L)).thenReturn(Optional.of(inactiveStore));
 
         assertThrows(IllegalArgumentException.class, () ->
-                createOrderHandler.execute(new CreateOrderUseCase.CreateOrderCommand(
+                createOrderHandler.execute(buildCommand(
                         1L, 1L, 1L,
                         List.of(new CreateOrderUseCase.OrderItemCommand(1L, 1)),
                         null
@@ -148,7 +156,7 @@ class CreateOrderHandlerTest {
         when(productRepositoryPort.findById(1L)).thenReturn(Optional.of(lowStockProduct));
 
         assertThrows(IllegalArgumentException.class, () ->
-                createOrderHandler.execute(new CreateOrderUseCase.CreateOrderCommand(
+                createOrderHandler.execute(buildCommand(
                         1L, 1L, 1L,
                         List.of(new CreateOrderUseCase.OrderItemCommand(1L, 5)),
                         null

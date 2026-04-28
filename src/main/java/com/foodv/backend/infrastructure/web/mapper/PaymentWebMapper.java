@@ -11,5 +11,7 @@ public interface PaymentWebMapper {
 
     PaymentResponse toResponse(Payment payment);
 
-    CreatePaymentUseCase.CreatePaymentCommand toCommand(CreatePaymentRequest request);
+    default CreatePaymentUseCase.CreatePaymentCommand toCommand(CreatePaymentRequest request, String email) {
+        return new CreatePaymentUseCase.CreatePaymentCommand(request.orderId(), email);
+    }
 }

@@ -13,7 +13,16 @@ public interface ProductWebMapper {
 
     ProductResponse toResponse(Product product);
 
-    CreateProductUseCase.CreateProductCommand toCommand(CreateProductRequest request);
-
     UpdateProductUseCase.UpdateProductCommand toCommand(UpdateProductRequest request);
+
+    default CreateProductUseCase.CreateProductCommand toCommandWithStore(CreateProductRequest request, Long storeId) {
+        return new CreateProductUseCase.CreateProductCommand(
+                request.nombre(),
+                request.descripcion(),
+                request.precio(),
+                request.stock(),
+                request.categoria(),
+                storeId
+        );
+    }
 }

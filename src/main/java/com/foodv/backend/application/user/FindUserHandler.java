@@ -1,14 +1,18 @@
 package com.foodv.backend.application.user;
 
+import com.foodv.backend.domain.common.PageQuery;
+import com.foodv.backend.domain.common.PagedResult;
 import com.foodv.backend.domain.model.user.User;
 import com.foodv.backend.domain.port.in.user.FindUserUseCase;
 import com.foodv.backend.domain.port.out.UserRepositoryPort;
 import jakarta.persistence.EntityNotFoundException;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 
 @Service
+@Transactional(readOnly = true)
 public class FindUserHandler implements FindUserUseCase {
 
     private final UserRepositoryPort userRepositoryPort;
@@ -32,5 +36,10 @@ public class FindUserHandler implements FindUserUseCase {
     @Override
     public List<User> findAll() {
         return userRepositoryPort.findAll();
+    }
+
+    @Override
+    public PagedResult<User> findAllPaginated(PageQuery query) {
+        return userRepositoryPort.findAllPaginated(query);
     }
 }

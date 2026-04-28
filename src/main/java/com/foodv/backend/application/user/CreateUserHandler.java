@@ -2,50 +2,56 @@ package com.foodv.backend.application.user;
 
 import com.foodv.backend.domain.model.user.User;
 import com.foodv.backend.domain.port.in.user.CreateUserUseCase;
+import com.foodv.backend.domain.port.out.BusinessMetricsPort;
 import com.foodv.backend.domain.port.out.UserRepositoryPort;
-import com.foodv.backend.infrastructure.metrics.BusinessMetricsService;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
+import java.util.List;
 
 @Service
 public class CreateUserHandler implements CreateUserUseCase {
 
     private final UserRepositoryPort userRepositoryPort;
     private final PasswordEncoder passwordEncoder;
-    private final BusinessMetricsService metricsService;
+    private final BusinessMetricsPort metricsPort;
 
-    public CreateUserHandler(UserRepositoryPort userRepositoryPort, PasswordEncoder passwordEncoder, BusinessMetricsService metricsService) {
+    public CreateUserHandler(UserRepositoryPort userRepositoryPort,
+                             PasswordEncoder passwordEncoder,
+                             BusinessMetricsPort metricsPort) {
         this.userRepositoryPort = userRepositoryPort;
         this.passwordEncoder = passwordEncoder;
-        this.metricsService = metricsService;
+        this.metricsPort = metricsPort;
     }
 
     @Override
+    @Transactional
     public User execute(CreateUserCommand command) {
-        if (userRepositoryPort.existsByEmail(command.email())) {
+        String normalizedEmail = command.email() == null ? "" : command.email().trim().toLowerCase();
+
+        if (userRepositoryPort.existsByEmail(normalizedEmail)) {
             throw new IllegalArgumentException("Email ya registrado");
         }
 
         User user = User.builder()
-                .nombres(command.nombres())
-                .apellidos(command.apellidos())
-                .email(command.email())
+                .nombres(command.nombres() == null ? null : command.nombres().trim())
+                .apellidos(command.apellidos() == null ? null : command.apellidos().trim())
+                .email(normalizedEmail)
                 .password(passwordEncoder.encode(command.password()))
-                .telefono(command.telefono())
+                .telefono(command.telefono() == null ? null : command.telefono().trim())
                 .role(command.role())
                 .activo(true)
                 .creadoEn(LocalDateTime.now())
-                .preferences(command.preferences())
-                .restrictions(command.restrictions())
-                .budgetRange(command.budgetRange())
-                .cuisineTypes(command.cuisineTypes())
+                .preferences(command.preferences() != null ? command.preferences() : List.of())
+                .restrictions(command.restrictions() != null ? command.restrictions() : List.of())
+                .budgetRange(command.budgetRange() != null ? command.budgetRange() : "MEDIO")
+                .cuisineTypes(command.cuisineTypes() != null ? command.cuisineTypes() : List.of())
                 .build();
 
         User savedUser = userRepositoryPort.save(user);
-        metricsService.recordUserRegistered();
-
+        metricsPort.recordUserRegistered();
         return savedUser;
     }
 }

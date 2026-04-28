@@ -1,9 +1,9 @@
 package com.foodv.backend.domain.port.out;
 
+import com.foodv.backend.domain.common.PageQuery;
+import com.foodv.backend.domain.common.PagedResult;
 import com.foodv.backend.domain.model.order.Order;
 import com.foodv.backend.domain.model.order.OrderStatus;
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.Pageable;
 
 import java.util.List;
 import java.util.Optional;
@@ -14,6 +14,8 @@ public interface OrderRepositoryPort {
 
     Optional<Order> findById(Long id);
 
+    Optional<Order> findByIdWithItems(Long id);
+
     List<Order> findByUserId(Long userId);
 
     List<Order> findByStoreId(Long storeId);
@@ -22,11 +24,13 @@ public interface OrderRepositoryPort {
 
     List<Order> findAll();
 
-    Page<Order> findAllPaginated(Pageable pageable);
+    PagedResult<Order> findAllPaginated(PageQuery query);
 
-    Page<Order> findByUserIdPaginated(Long userId, Pageable pageable);
+    PagedResult<Order> findByUserIdPaginated(Long userId, PageQuery query);
 
-    Page<Order> findByStoreIdPaginated(Long storeId, Pageable pageable);
+    PagedResult<Order> findByStoreIdPaginated(Long storeId, PageQuery query);
+
+    PagedResult<Order> findByStatusPaginated(OrderStatus status, PageQuery query);
 
     List<Order> findByUserIdAndStatus(Long userId, OrderStatus status);
 }

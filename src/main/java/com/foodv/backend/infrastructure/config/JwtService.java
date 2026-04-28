@@ -1,71 +1,39 @@
 package com.foodv.backend.infrastructure.config;
 
 import com.foodv.backend.domain.model.user.UserRole;
-import io.jsonwebtoken.Claims;
-import io.jsonwebtoken.Jwts;
-import io.jsonwebtoken.security.Keys;
+import com.foodv.backend.domain.port.out.TokenServicePort;
 import org.springframework.stereotype.Service;
 
-import javax.crypto.SecretKey;
-import java.nio.charset.StandardCharsets;
-import java.util.Date;
-
+/**
+ * Wrapper legacy alrededor del {@link TokenServicePort} para mantener compatibilidad.
+ * Nuevos clientes deben inyectar {@link TokenServicePort} directamente.
+ */
 @Service
 public class JwtService {
 
-    private final JwtConfig jwtConfig;
+    private final TokenServicePort tokenServicePort;
 
-    public JwtService(JwtConfig jwtConfig) {
-        this.jwtConfig = jwtConfig;
+    public JwtService(TokenServicePort tokenServicePort) {
+        this.tokenServicePort = tokenServicePort;
     }
 
     public String generateAccessToken(String email, UserRole role) {
-        return Jwts.builder()
-                .subject(email)
-                .claim("role", role.name())
-                .issuer(jwtConfig.getIssuer())
-                .issuedAt(new Date())
-                .expiration(new Date(System.currentTimeMillis() + jwtConfig.getExpiration()))
-                .signWith(getSigningKey())
-                .compact();
+        return tokenServicePort.generateAccessToken(email, role);
     }
 
     public String generateRefreshToken(String email) {
-        return Jwts.builder()
-                .subject(email)
-                .issuer(jwtConfig.getIssuer())
-                .issuedAt(new Date())
-                .expiration(new Date(System.currentTimeMillis() + jwtConfig.getRefreshExpiration()))
-                .signWith(getSigningKey())
-                .compact();
-    }
-
-    public String extractEmail(String token) {
-        return extractAllClaims(token).getSubject();
+        return tokenServicePort.generateRefreshToken(email);
     }
 
     public boolean isTokenValid(String token) {
-        try {
-            Claims claims = extractAllClaims(token);
-            return !claims.getExpiration().before(new Date());
-        } catch (Exception e) {
-            return false;
-        }
+        return tokenServicePort.isTokenValid(token);
+    }
+
+    public String extractEmail(String token) {
+        return tokenServicePort.extractEmail(token);
     }
 
     public String extractRole(String token) {
-        return extractAllClaims(token).get("role", String.class);
-    }
-
-    private Claims extractAllClaims(String token) {
-        return Jwts.parser()
-                .verifyWith(getSigningKey())
-                .build()
-                .parseSignedClaims(token)
-                .getPayload();
-    }
-
-    private SecretKey getSigningKey() {
-        return Keys.hmacShaKeyFor(jwtConfig.getSecret().getBytes(StandardCharsets.UTF_8));
+        return tokenServicePort.extractRole(token);
     }
 }

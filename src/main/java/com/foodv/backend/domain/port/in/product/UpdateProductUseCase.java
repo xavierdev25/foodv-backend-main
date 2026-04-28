@@ -7,7 +7,17 @@ import java.math.BigDecimal;
 
 public interface UpdateProductUseCase {
 
-    record UpdateProductCommand(String nombre, String descripcion, BigDecimal precio, Integer stock, ProductCategory categoria, boolean disponible) {}
+    /**
+     * Comando con campos opcionales (semántica PATCH): null = no modificar.
+     */
+    record UpdateProductCommand(
+            String nombre,
+            String descripcion,
+            BigDecimal precio,
+            Integer stock,
+            ProductCategory categoria,
+            Boolean disponible
+    ) {}
 
     Product execute(Long id, UpdateProductCommand command);
 }

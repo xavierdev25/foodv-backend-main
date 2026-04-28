@@ -3,69 +3,69 @@ package com.foodv.backend.application.auth;
 import com.foodv.backend.domain.model.user.User;
 import com.foodv.backend.domain.port.in.auth.LoginUseCase;
 import com.foodv.backend.domain.port.in.auth.RefreshTokenUseCase;
+import com.foodv.backend.domain.port.out.RefreshTokenStorePort;
+import com.foodv.backend.domain.port.out.TokenServicePort;
 import com.foodv.backend.domain.port.out.UserRepositoryPort;
-import com.foodv.backend.infrastructure.config.JwtConfig;
-import com.foodv.backend.infrastructure.config.JwtService;
-import com.foodv.backend.infrastructure.persistence.entity.RefreshTokenEntity;
-import com.foodv.backend.infrastructure.persistence.repository.RefreshTokenRepository;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 
 @Service
 public class RefreshTokenHandler implements RefreshTokenUseCase {
 
-    private final JwtService jwtService;
+    private final TokenServicePort tokenServicePort;
     private final UserRepositoryPort userRepositoryPort;
-    private final JwtConfig jwtConfig;
-    private final RefreshTokenRepository refreshTokenRepository;
+    private final RefreshTokenStorePort refreshTokenStorePort;
 
-    public RefreshTokenHandler(JwtService jwtService,
+    public RefreshTokenHandler(TokenServicePort tokenServicePort,
                                UserRepositoryPort userRepositoryPort,
-                               JwtConfig jwtConfig,
-                               RefreshTokenRepository refreshTokenRepository) {
-        this.jwtService = jwtService;
+                               RefreshTokenStorePort refreshTokenStorePort) {
+        this.tokenServicePort = tokenServicePort;
         this.userRepositoryPort = userRepositoryPort;
-        this.jwtConfig = jwtConfig;
-        this.refreshTokenRepository = refreshTokenRepository;
+        this.refreshTokenStorePort = refreshTokenStorePort;
     }
 
     @Override
+    @Transactional
     public LoginUseCase.LoginResult execute(String refreshToken) {
-        if (!jwtService.isTokenValid(refreshToken)) {
+        if (refreshToken == null || refreshToken.isBlank() || !tokenServicePort.isTokenValid(refreshToken)) {
             throw new IllegalArgumentException("Refresh token inválido");
         }
 
-        RefreshTokenEntity entity = refreshTokenRepository.findByToken(refreshToken)
+        RefreshTokenStorePort.RefreshTokenInfo info = refreshTokenStorePort.findByToken(refreshToken)
                 .orElseThrow(() -> new IllegalArgumentException("Refresh token inválido"));
 
-        if (entity.isRevoked()) {
+        if (info.revoked()) {
+            // Token reuse: rotación detectada → revocar todos los tokens del usuario
+            refreshTokenStorePort.revokeAllByUserId(info.userId());
             throw new IllegalArgumentException("Refresh token revocado");
         }
 
-        if (entity.getExpiresAt().isBefore(LocalDateTime.now())) {
+        if (info.expiresAt().isBefore(LocalDateTime.now())) {
             throw new IllegalArgumentException("Refresh token expirado");
         }
 
-        refreshTokenRepository.save(entity.toBuilder().revoked(true).build());
+        refreshTokenStorePort.revokeByToken(refreshToken);
 
-        String email = jwtService.extractEmail(refreshToken);
-
+        String email = tokenServicePort.extractEmail(refreshToken);
         User user = userRepositoryPort.findByEmail(email)
                 .orElseThrow(() -> new IllegalArgumentException("Usuario no encontrado"));
 
-        String newAccessToken = jwtService.generateAccessToken(user.getEmail(), user.getRole());
-        String newRefreshToken = jwtService.generateRefreshToken(user.getEmail());
+        if (!user.isActivo()) {
+            throw new IllegalArgumentException("Usuario inactivo");
+        }
 
-        RefreshTokenEntity newRefreshTokenEntity = RefreshTokenEntity.builder()
-                .token(newRefreshToken)
-                .userId(user.getId())
-                .expiresAt(LocalDateTime.now().plusSeconds(jwtConfig.getRefreshExpiration() / 1000))
-                .revoked(false)
-                .creadoEn(LocalDateTime.now())
-                .build();
-        refreshTokenRepository.save(newRefreshTokenEntity);
+        String newAccessToken = tokenServicePort.generateAccessToken(user.getEmail(), user.getRole());
+        String newRefreshToken = tokenServicePort.generateRefreshToken(user.getEmail());
 
-        return new LoginUseCase.LoginResult(newAccessToken, newRefreshToken, "Bearer", jwtConfig.getExpiration());
+        refreshTokenStorePort.save(
+                newRefreshToken,
+                user.getId(),
+                LocalDateTime.now().plusSeconds(tokenServicePort.getRefreshTokenExpirationMillis() / 1000)
+        );
+
+        return new LoginUseCase.LoginResult(newAccessToken, newRefreshToken, "Bearer",
+                tokenServicePort.getAccessTokenExpirationMillis());
     }
 }

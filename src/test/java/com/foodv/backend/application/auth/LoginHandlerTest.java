@@ -3,11 +3,10 @@ package com.foodv.backend.application.auth;
 import com.foodv.backend.domain.model.user.User;
 import com.foodv.backend.domain.model.user.UserRole;
 import com.foodv.backend.domain.port.in.auth.LoginUseCase;
+import com.foodv.backend.domain.port.out.LoginAttemptPort;
+import com.foodv.backend.domain.port.out.RefreshTokenStorePort;
+import com.foodv.backend.domain.port.out.TokenServicePort;
 import com.foodv.backend.domain.port.out.UserRepositoryPort;
-import com.foodv.backend.infrastructure.config.JwtConfig;
-import com.foodv.backend.infrastructure.config.JwtService;
-import com.foodv.backend.infrastructure.persistence.repository.RefreshTokenRepository;
-import com.foodv.backend.infrastructure.security.LoginAttemptService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -22,6 +21,7 @@ import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.*;
 
@@ -31,10 +31,9 @@ class LoginHandlerTest {
 
     @Mock private UserRepositoryPort userRepositoryPort;
     @Mock private PasswordEncoder passwordEncoder;
-    @Mock private JwtService jwtService;
-    @Mock private JwtConfig jwtConfig;
-    @Mock private RefreshTokenRepository refreshTokenRepository;
-    @Mock private LoginAttemptService loginAttemptService;
+    @Mock private TokenServicePort tokenServicePort;
+    @Mock private RefreshTokenStorePort refreshTokenStorePort;
+    @Mock private LoginAttemptPort loginAttemptPort;
 
     @InjectMocks private LoginHandler loginHandler;
 
@@ -57,14 +56,13 @@ class LoginHandlerTest {
     @Test
     @DisplayName("Login exitoso retorna tokens")
     void login_exitoso_retorna_tokens() {
-        when(loginAttemptService.isBlocked(anyString())).thenReturn(false);
+        when(loginAttemptPort.isBlocked(anyString())).thenReturn(false);
         when(userRepositoryPort.findByEmail("xavier@foodv.com")).thenReturn(Optional.of(activeUser));
         when(passwordEncoder.matches("password123", "hashedPassword")).thenReturn(true);
-        when(jwtService.generateAccessToken(anyString(), any())).thenReturn("accessToken");
-        when(jwtService.generateRefreshToken(anyString())).thenReturn("refreshToken");
-        when(jwtConfig.getExpiration()).thenReturn(86400000L);
-        when(jwtConfig.getRefreshExpiration()).thenReturn(604800000L);
-        when(refreshTokenRepository.save(any())).thenReturn(null);
+        when(tokenServicePort.generateAccessToken(anyString(), any())).thenReturn("accessToken");
+        when(tokenServicePort.generateRefreshToken(anyString())).thenReturn("refreshToken");
+        when(tokenServicePort.getAccessTokenExpirationMillis()).thenReturn(86400000L);
+        when(tokenServicePort.getRefreshTokenExpirationMillis()).thenReturn(604800000L);
 
         LoginUseCase.LoginResult result = loginHandler.execute(
                 new LoginUseCase.LoginCommand("xavier@foodv.com", "password123")
@@ -74,43 +72,45 @@ class LoginHandlerTest {
         assertEquals("accessToken", result.accessToken());
         assertEquals("refreshToken", result.refreshToken());
         assertEquals("Bearer", result.tokenType());
-        verify(loginAttemptService).resetAttempts("xavier@foodv.com");
+        verify(refreshTokenStorePort).save(eq("refreshToken"), eq(1L), any());
+        verify(loginAttemptPort).resetAttempts("xavier@foodv.com");
     }
 
     @Test
-    @DisplayName("Login fallido — usuario no existe lanza excepción")
+    @DisplayName("Login fallido — usuario no existe lanza excepción genérica")
     void login_usuario_no_existe_lanza_excepcion() {
-        when(loginAttemptService.isBlocked(anyString())).thenReturn(false);
+        when(loginAttemptPort.isBlocked(anyString())).thenReturn(false);
         when(userRepositoryPort.findByEmail("noexiste@foodv.com")).thenReturn(Optional.empty());
 
-        assertThrows(IllegalArgumentException.class, () ->
+        IllegalArgumentException ex = assertThrows(IllegalArgumentException.class, () ->
                 loginHandler.execute(new LoginUseCase.LoginCommand("noexiste@foodv.com", "password123"))
         );
+        assertTrue(ex.getMessage().toLowerCase().contains("credenciales"));
+        verify(loginAttemptPort).recordFailedAttempt("noexiste@foodv.com");
     }
 
     @Test
     @DisplayName("Login fallido — password incorrecto registra intento fallido")
     void login_password_incorrecto_registra_intento() {
-        when(loginAttemptService.isBlocked(anyString())).thenReturn(false);
+        when(loginAttemptPort.isBlocked(anyString())).thenReturn(false);
         when(userRepositoryPort.findByEmail("xavier@foodv.com")).thenReturn(Optional.of(activeUser));
         when(passwordEncoder.matches("wrongpassword", "hashedPassword")).thenReturn(false);
-        when(loginAttemptService.getRemainingAttempts(anyString())).thenReturn(4);
 
         assertThrows(IllegalArgumentException.class, () ->
                 loginHandler.execute(new LoginUseCase.LoginCommand("xavier@foodv.com", "wrongpassword"))
         );
-        verify(loginAttemptService).recordFailedAttempt("xavier@foodv.com");
+        verify(loginAttemptPort).recordFailedAttempt("xavier@foodv.com");
     }
 
     @Test
     @DisplayName("Login bloqueado — demasiados intentos fallidos")
     void login_bloqueado_lanza_excepcion() {
-        when(loginAttemptService.isBlocked("xavier@foodv.com")).thenReturn(true);
+        when(loginAttemptPort.isBlocked("xavier@foodv.com")).thenReturn(true);
 
         IllegalArgumentException ex = assertThrows(IllegalArgumentException.class, () ->
                 loginHandler.execute(new LoginUseCase.LoginCommand("xavier@foodv.com", "password123"))
         );
-        assertTrue(ex.getMessage().contains("bloqueada"));
+        assertTrue(ex.getMessage().toLowerCase().contains("bloqueada"));
         verifyNoInteractions(userRepositoryPort);
     }
 
@@ -126,7 +126,7 @@ class LoginHandlerTest {
                 .creadoEn(LocalDateTime.now())
                 .build();
 
-        when(loginAttemptService.isBlocked(anyString())).thenReturn(false);
+        when(loginAttemptPort.isBlocked(anyString())).thenReturn(false);
         when(userRepositoryPort.findByEmail("inactivo@foodv.com")).thenReturn(Optional.of(inactiveUser));
         when(passwordEncoder.matches("password123", "hashedPassword")).thenReturn(true);
 

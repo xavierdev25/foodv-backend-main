@@ -13,7 +13,14 @@ public interface StoreWebMapper {
 
     StoreResponse toResponse(Store store);
 
-    CreateStoreUseCase.CreateStoreCommand toCommand(CreateStoreRequest request);
-
     UpdateStoreUseCase.UpdateStoreCommand toCommand(UpdateStoreRequest request);
+
+    default CreateStoreUseCase.CreateStoreCommand toCommandWithOwner(CreateStoreRequest request, Long ownerId) {
+        return new CreateStoreUseCase.CreateStoreCommand(
+                request.nombre(),
+                request.descripcion(),
+                request.telefono(),
+                ownerId
+        );
+    }
 }

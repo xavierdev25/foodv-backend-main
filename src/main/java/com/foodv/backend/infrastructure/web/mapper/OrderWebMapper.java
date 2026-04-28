@@ -1,19 +1,23 @@
 package com.foodv.backend.infrastructure.web.mapper;
 
+import com.foodv.backend.domain.common.PagedResult;
 import com.foodv.backend.domain.model.order.Order;
 import com.foodv.backend.domain.model.order.OrderItem;
 import com.foodv.backend.domain.port.in.order.CreateOrderUseCase;
+import com.foodv.backend.infrastructure.web.dto.common.PageResponse;
 import com.foodv.backend.infrastructure.web.dto.order.CreateOrderRequest;
 import com.foodv.backend.infrastructure.web.dto.order.OrderItemRequest;
 import com.foodv.backend.infrastructure.web.dto.order.OrderItemResponse;
 import com.foodv.backend.infrastructure.web.dto.order.OrderResponse;
 import org.mapstruct.Mapper;
+import org.mapstruct.Mapping;
 
 import java.util.List;
 
 @Mapper(componentModel = "spring")
 public interface OrderWebMapper {
 
+    @Mapping(target = "statusDescripcion", expression = "java(order.getStatus().enEspanol())")
     OrderResponse toResponse(Order order);
 
     OrderItemResponse toItemResponse(OrderItem item);
@@ -31,7 +35,12 @@ public interface OrderWebMapper {
                 request.storeId(),
                 request.aulaId(),
                 items,
-                request.notas()
+                request.notas(),
+                request.propina()
         );
+    }
+
+    default PageResponse<OrderResponse> toPageResponse(PagedResult<Order> page) {
+        return PageResponse.from(page.map(this::toResponse));
     }
 }

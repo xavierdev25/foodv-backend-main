@@ -1,11 +1,11 @@
 package com.foodv.backend.domain.port.in.product;
 
+import com.foodv.backend.domain.common.PageQuery;
+import com.foodv.backend.domain.common.PagedResult;
 import com.foodv.backend.domain.model.product.Product;
 import com.foodv.backend.domain.model.product.ProductCategory;
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.Pageable;
-import java.math.BigDecimal;
 
+import java.math.BigDecimal;
 import java.util.List;
 
 public interface FindProductUseCase {
@@ -18,13 +18,15 @@ public interface FindProductUseCase {
 
     List<Product> findByCategoria(ProductCategory categoria);
 
+    PagedResult<Product> findByCategoriaPaginated(ProductCategory categoria, PageQuery query);
+
     List<Product> findAll();
 
-    Page<Product> findAllPaginated(Pageable pageable);
+    PagedResult<Product> findAllPaginated(PageQuery query);
 
-    Page<Product> findByStoreIdPaginated(Long storeId, Pageable pageable);
+    PagedResult<Product> findByStoreIdPaginated(Long storeId, PageQuery query);
 
-    Page<Product> search(String nombre, ProductCategory categoria, Long storeId,
-                         BigDecimal precioMin, BigDecimal precioMax,
-                         Boolean disponible, Pageable pageable);
+    PagedResult<Product> search(String nombre, ProductCategory categoria, Long storeId,
+                                BigDecimal precioMin, BigDecimal precioMax,
+                                Boolean disponible, PageQuery query);
 }

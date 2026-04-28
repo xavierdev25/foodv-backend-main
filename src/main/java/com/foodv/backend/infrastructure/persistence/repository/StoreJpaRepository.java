@@ -1,6 +1,8 @@
 package com.foodv.backend.infrastructure.persistence.repository;
 
 import com.foodv.backend.infrastructure.persistence.entity.StoreEntity;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
@@ -11,12 +13,14 @@ import java.util.Optional;
 public interface StoreJpaRepository extends JpaRepository<StoreEntity, Long> {
 
     List<StoreEntity> findAllByDeletedAtIsNull();
+    Page<StoreEntity> findAllByDeletedAtIsNull(Pageable pageable);
     Optional<StoreEntity> findByIdAndDeletedAtIsNull(Long id);
     Optional<StoreEntity> findByOwnerIdAndDeletedAtIsNull(Long ownerId);
-
     Optional<StoreEntity> findByOwnerId(Long ownerId);
-
     boolean existsByOwnerId(Long ownerId);
+    List<StoreEntity> findByActivoTrueAndDeletedAtIsNull();
+    Page<StoreEntity> findByActivoTrueAndDeletedAtIsNull(Pageable pageable);
 
+    @Deprecated
     List<StoreEntity> findByActivoTrue();
 }

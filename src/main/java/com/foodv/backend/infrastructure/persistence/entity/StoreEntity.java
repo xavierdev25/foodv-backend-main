@@ -42,6 +42,9 @@ public class StoreEntity {
     @Column(name = "creado_en")
     private LocalDateTime creadoEn;
 
+    @Column(name = "actualizado_en")
+    private LocalDateTime actualizadoEn;
+
     @Column(name = "deleted_at")
     private LocalDateTime deletedAt;
 }

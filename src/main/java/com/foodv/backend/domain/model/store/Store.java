@@ -23,4 +23,5 @@ public class Store {
     private Long ownerId;
     private boolean activo;
     private LocalDateTime creadoEn;
+    private LocalDateTime actualizadoEn;
 }

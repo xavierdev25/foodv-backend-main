@@ -7,32 +7,42 @@ import com.foodv.backend.domain.model.product.Product;
 import com.foodv.backend.domain.model.store.Store;
 import com.foodv.backend.domain.port.in.order.CreateOrderUseCase;
 import com.foodv.backend.domain.port.out.AulaRepositoryPort;
+import com.foodv.backend.domain.port.out.BusinessMetricsPort;
 import com.foodv.backend.domain.port.out.OrderRepositoryPort;
 import com.foodv.backend.domain.port.out.ProductRepositoryPort;
+import com.foodv.backend.domain.port.out.SecureRandomPort;
 import com.foodv.backend.domain.port.out.StoreRepositoryPort;
 import com.foodv.backend.domain.port.out.UserRepositoryPort;
-import com.foodv.backend.infrastructure.metrics.BusinessMetricsService;
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 @Service
 @RequiredArgsConstructor
 public class CreateOrderHandler implements CreateOrderUseCase {
+
+    private static final BigDecimal TARIFA_SERVICIO = new BigDecimal("1.50");
+    private static final BigDecimal COMISION_FOODV = new BigDecimal("0.50");
+    private static final int MAX_PROPINA_RATIO_PERCENT = 50;
 
     private final OrderRepositoryPort orderRepositoryPort;
     private final ProductRepositoryPort productRepositoryPort;
     private final UserRepositoryPort userRepositoryPort;
     private final StoreRepositoryPort storeRepositoryPort;
     private final AulaRepositoryPort aulaRepositoryPort;
-    private final BusinessMetricsService metricsService;
+    private final BusinessMetricsPort metricsPort;
+    private final SecureRandomPort secureRandomPort;
 
     @Override
+    @Transactional
     public Order execute(CreateOrderCommand command) {
         userRepositoryPort.findById(command.userId())
                 .orElseThrow(() -> new EntityNotFoundException("Usuario no encontrado"));
@@ -47,43 +57,79 @@ public class CreateOrderHandler implements CreateOrderUseCase {
         aulaRepositoryPort.findById(command.aulaId())
                 .orElseThrow(() -> new EntityNotFoundException("Aula no encontrada"));
 
+        if (command.items() == null || command.items().isEmpty()) {
+            throw new IllegalArgumentException("La orden debe tener al menos un item");
+        }
+
+        Map<Long, Integer> aggregatedQuantities = new HashMap<>();
+        for (OrderItemCommand item : command.items()) {
+            if (item.cantidad() == null || item.cantidad() < 1) {
+                throw new IllegalArgumentException("Cantidad inválida para producto " + item.productId());
+            }
+            aggregatedQuantities.merge(item.productId(), item.cantidad(), Integer::sum);
+        }
+
         List<OrderItem> orderItems = new ArrayList<>();
+        for (Map.Entry<Long, Integer> entry : aggregatedQuantities.entrySet()) {
+            Long productId = entry.getKey();
+            int cantidad = entry.getValue();
 
-        for (OrderItemCommand itemCommand : command.items()) {
-            Product product = productRepositoryPort.findById(itemCommand.productId())
-                    .orElseThrow(() -> new EntityNotFoundException("Producto no encontrado: " + itemCommand.productId()));
+            Product product = productRepositoryPort.findById(productId)
+                    .orElseThrow(() -> new EntityNotFoundException("Producto no encontrado: " + productId));
 
-            if (!product.isDisponible()) {
+            if (!product.getStoreId().equals(store.getId())) {
+                throw new IllegalArgumentException(
+                        "El producto " + product.getNombre() + " no pertenece a la tienda seleccionada");
+            }
+            if (!product.isActivo() || !product.isDisponible()) {
                 throw new IllegalArgumentException("Producto no disponible: " + product.getNombre());
             }
-
-            if (product.getStock() < itemCommand.cantidad()) {
+            if (product.getStock() < cantidad) {
                 throw new IllegalArgumentException("Stock insuficiente para: " + product.getNombre());
             }
 
-            BigDecimal subtotal = product.getPrecio().multiply(BigDecimal.valueOf(itemCommand.cantidad()));
+            int updated = productRepositoryPort.decrementStock(productId, cantidad);
+            if (updated == 0) {
+                throw new IllegalArgumentException(
+                        "No fue posible reservar stock para: " + product.getNombre() +
+                        ". Inténtalo de nuevo.");
+            }
 
-            OrderItem orderItem = OrderItem.builder()
+            BigDecimal subtotal = product.getPrecio().multiply(BigDecimal.valueOf(cantidad));
+            orderItems.add(OrderItem.builder()
                     .productId(product.getId())
                     .productNombre(product.getNombre())
                     .productPrecio(product.getPrecio())
-                    .cantidad(itemCommand.cantidad())
+                    .cantidad(cantidad)
                     .subtotal(subtotal)
-                    .build();
-
-            orderItems.add(orderItem);
+                    .build());
         }
 
-        BigDecimal total = orderItems.stream()
+        BigDecimal totalProductos = orderItems.stream()
                 .map(OrderItem::getSubtotal)
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
+
+        BigDecimal propina = command.propina() == null ? BigDecimal.ZERO : command.propina();
+        if (propina.signum() < 0) {
+            throw new IllegalArgumentException("La propina no puede ser negativa");
+        }
+        BigDecimal maxPropina = totalProductos
+                .multiply(BigDecimal.valueOf(MAX_PROPINA_RATIO_PERCENT))
+                .divide(BigDecimal.valueOf(100), 2, java.math.RoundingMode.HALF_UP);
+        if (propina.compareTo(maxPropina) > 0) {
+            throw new IllegalArgumentException("La propina excede el máximo permitido");
+        }
 
         Order order = Order.builder()
                 .userId(command.userId())
                 .storeId(command.storeId())
                 .aulaId(command.aulaId())
                 .items(orderItems)
-                .total(total)
+                .total(totalProductos)
+                .propina(propina)
+                .tarifaServicio(TARIFA_SERVICIO)
+                .comisionFoodv(COMISION_FOODV)
+                .codigoConfirmacion(secureRandomPort.generateConfirmationCode(4))
                 .status(OrderStatus.PENDIENTE)
                 .notas(command.notas())
                 .creadoEn(LocalDateTime.now())
@@ -91,28 +137,7 @@ public class CreateOrderHandler implements CreateOrderUseCase {
                 .build();
 
         Order savedOrder = orderRepositoryPort.save(order);
-
-        savedOrder.getItems().forEach(item ->
-            productRepositoryPort.findById(item.getProductId()).ifPresent(product -> {
-                Product updatedProduct = Product.builder()
-                    .id(product.getId())
-                    .nombre(product.getNombre())
-                    .descripcion(product.getDescripcion())
-                    .precio(product.getPrecio())
-                    .stock(product.getStock() - item.getCantidad())
-                    .imagenUrl(product.getImagenUrl())
-                    .categoria(product.getCategoria())
-                    .storeId(product.getStoreId())
-                    .activo(product.isActivo())
-                    .disponible(product.getStock() - item.getCantidad() > 0)
-                    .creadoEn(product.getCreadoEn())
-                    .build();
-                productRepositoryPort.save(updatedProduct);
-            })
-        );
-
-        metricsService.recordOrderCreated();
-
+        metricsPort.recordOrderCreated();
         return savedOrder;
     }
 }

@@ -1,6 +1,7 @@
 package com.foodv.backend.infrastructure.web.controller;
 
 import jakarta.persistence.EntityNotFoundException;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -18,85 +19,99 @@ import java.time.LocalDateTime;
 import java.util.HashMap;
 import java.util.Map;
 
+@Slf4j
 @RestControllerAdvice
 public class GlobalExceptionHandler {
 
-    // ── 404 Not Found ──────────────────────────────────────────────
     @ExceptionHandler(EntityNotFoundException.class)
     public ResponseEntity<Map<String, Object>> handleNotFound(EntityNotFoundException ex) {
-        return build(HttpStatus.NOT_FOUND, "No encontrado", ex.getMessage());
+        return build(HttpStatus.NOT_FOUND, "No encontrado", safeMessage(ex, "Recurso no encontrado"));
     }
 
-    // ── 400 Bad Request ────────────────────────────────────────────
     @ExceptionHandler(IllegalArgumentException.class)
     public ResponseEntity<Map<String, Object>> handleBadRequest(IllegalArgumentException ex) {
-        return build(HttpStatus.BAD_REQUEST, "Solicitud inválida", ex.getMessage());
+        return build(HttpStatus.BAD_REQUEST, "Solicitud inválida", safeMessage(ex, "Solicitud inválida"));
     }
 
-    // ── 400 Validation errors ──────────────────────────────────────
+    @ExceptionHandler(IllegalStateException.class)
+    public ResponseEntity<Map<String, Object>> handleIllegalState(IllegalStateException ex) {
+        log.warn("Estado inválido: {}", ex.getMessage());
+        return build(HttpStatus.CONFLICT, "Conflicto", safeMessage(ex, "Operación no permitida en este estado"));
+    }
+
     @ExceptionHandler(MethodArgumentNotValidException.class)
     public ResponseEntity<Map<String, Object>> handleValidation(MethodArgumentNotValidException ex) {
         Map<String, String> errors = new HashMap<>();
         for (FieldError error : ex.getBindingResult().getFieldErrors()) {
-            errors.put(error.getField(), error.getDefaultMessage());
+            errors.put(error.getField(),
+                    error.getDefaultMessage() != null ? error.getDefaultMessage() : "Valor inválido");
         }
         Map<String, Object> body = new HashMap<>();
         body.put("timestamp", LocalDateTime.now());
         body.put("status", HttpStatus.BAD_REQUEST.value());
         body.put("error", "Error de validación");
+        body.put("message", "Hay errores en los campos enviados");
         body.put("fields", errors);
         return ResponseEntity.badRequest().body(body);
     }
 
-    // ── 400 JSON malformado ────────────────────────────────────────
     @ExceptionHandler(HttpMessageNotReadableException.class)
     public ResponseEntity<Map<String, Object>> handleUnreadable(HttpMessageNotReadableException ex) {
-        return build(HttpStatus.BAD_REQUEST, "JSON inválido", "El cuerpo de la petición no tiene el formato correcto");
+        return build(HttpStatus.BAD_REQUEST, "JSON inválido",
+                "El cuerpo de la petición no tiene el formato correcto");
     }
 
-    // ── 400 Parámetro faltante ─────────────────────────────────────
     @ExceptionHandler(MissingServletRequestParameterException.class)
     public ResponseEntity<Map<String, Object>> handleMissingParam(MissingServletRequestParameterException ex) {
-        return build(HttpStatus.BAD_REQUEST, "Parámetro faltante", "El parámetro '" + ex.getParameterName() + "' es requerido");
+        return build(HttpStatus.BAD_REQUEST, "Parámetro faltante",
+                "El parámetro '" + ex.getParameterName() + "' es requerido");
     }
 
-    // ── 400 Tipo de parámetro incorrecto ──────────────────────────
     @ExceptionHandler(MethodArgumentTypeMismatchException.class)
     public ResponseEntity<Map<String, Object>> handleTypeMismatch(MethodArgumentTypeMismatchException ex) {
+        String requiredType = ex.getRequiredType() != null ? ex.getRequiredType().getSimpleName() : "valor válido";
         return build(HttpStatus.BAD_REQUEST, "Tipo de parámetro inválido",
-                "El parámetro '" + ex.getName() + "' debe ser de tipo " + ex.getRequiredType().getSimpleName());
+                "El parámetro '" + ex.getName() + "' debe ser de tipo " + requiredType);
     }
 
-    // ── 401 Unauthorized ───────────────────────────────────────────
     @ExceptionHandler(AuthenticationException.class)
     public ResponseEntity<Map<String, Object>> handleUnauthorized(AuthenticationException ex) {
-        return build(HttpStatus.UNAUTHORIZED, "No autenticado", "Debes iniciar sesión para acceder a este recurso");
+        return build(HttpStatus.UNAUTHORIZED, "No autenticado",
+                "Debes iniciar sesión para acceder a este recurso");
     }
 
-    // ── 403 Forbidden ──────────────────────────────────────────────
     @ExceptionHandler(AccessDeniedException.class)
     public ResponseEntity<Map<String, Object>> handleForbidden(AccessDeniedException ex) {
-        return build(HttpStatus.FORBIDDEN, "Acceso denegado", "No tienes permisos para realizar esta acción");
+        return build(HttpStatus.FORBIDDEN, "Acceso denegado",
+                safeMessage(ex, "No tienes permisos para realizar esta acción"));
     }
 
-    // ── 409 Conflict — integridad de BD ───────────────────────────
     @ExceptionHandler(DataIntegrityViolationException.class)
     public ResponseEntity<Map<String, Object>> handleDataIntegrity(DataIntegrityViolationException ex) {
-        String message = "Operación inválida: el recurso ya existe o viola una restricción de integridad";
-        if (ex.getMessage() != null && ex.getMessage().contains("unique")) {
-            message = "Ya existe un registro con esos datos";
-        }
-        return build(HttpStatus.CONFLICT, "Conflicto de datos", message);
+        log.warn("Violación de integridad: {}", ex.getMostSpecificCause().getMessage());
+        return build(HttpStatus.CONFLICT, "Conflicto de datos",
+                "Ya existe un registro con esos datos o se viola una restricción de integridad");
     }
 
-    // ── 500 Internal Server Error ──────────────────────────────────
+    @ExceptionHandler(SecurityException.class)
+    public ResponseEntity<Map<String, Object>> handleSecurity(SecurityException ex) {
+        log.warn("Violación de seguridad: {}", ex.getMessage());
+        return build(HttpStatus.FORBIDDEN, "Operación no permitida",
+                safeMessage(ex, "Operación no permitida"));
+    }
+
     @ExceptionHandler(Exception.class)
     public ResponseEntity<Map<String, Object>> handleGeneric(Exception ex) {
+        log.error("Error no manejado en la API", ex);
         return build(HttpStatus.INTERNAL_SERVER_ERROR, "Error interno del servidor",
                 "Ocurrió un error inesperado. Por favor intenta de nuevo.");
     }
 
-    // ── Builder ────────────────────────────────────────────────────
+    private static String safeMessage(Throwable ex, String fallback) {
+        return (ex != null && ex.getMessage() != null && !ex.getMessage().isBlank())
+                ? ex.getMessage() : fallback;
+    }
+
     private ResponseEntity<Map<String, Object>> build(HttpStatus status, String error, String message) {
         Map<String, Object> body = new HashMap<>();
         body.put("timestamp", LocalDateTime.now());

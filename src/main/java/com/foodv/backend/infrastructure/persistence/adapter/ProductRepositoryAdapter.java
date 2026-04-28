@@ -1,16 +1,17 @@
 package com.foodv.backend.infrastructure.persistence.adapter;
 
+import com.foodv.backend.domain.common.PageQuery;
+import com.foodv.backend.domain.common.PagedResult;
 import com.foodv.backend.domain.model.product.Product;
 import com.foodv.backend.domain.model.product.ProductCategory;
 import com.foodv.backend.domain.port.out.ProductRepositoryPort;
+import com.foodv.backend.infrastructure.common.PagingMapper;
 import com.foodv.backend.infrastructure.persistence.repository.ProductJpaRepository;
 import lombok.RequiredArgsConstructor;
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Component;
+
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
-
 import java.util.List;
 import java.util.Optional;
 
@@ -22,11 +23,14 @@ public class ProductRepositoryAdapter implements ProductRepositoryPort {
     private final ProductEntityMapper mapper;
 
     @Override
-    public Page<Product> search(String nombre, ProductCategory categoria, Long storeId,
-                                BigDecimal precioMin, BigDecimal precioMax,
-                                Boolean disponible, Pageable pageable) {
-        return jpaRepository.search(nombre, categoria, storeId, precioMin, precioMax, disponible, pageable)
-                .map(mapper::toDomain);
+    public PagedResult<Product> search(String nombre, ProductCategory categoria, Long storeId,
+                                       BigDecimal precioMin, BigDecimal precioMax,
+                                       Boolean disponible, PageQuery query) {
+        return PagingMapper.toDomain(
+                jpaRepository.search(nombre, categoria, storeId, precioMin, precioMax, disponible,
+                        PagingMapper.toPageable(query)),
+                mapper::toDomain
+        );
     }
 
     @Override
@@ -55,6 +59,14 @@ public class ProductRepositoryAdapter implements ProductRepositoryPort {
     }
 
     @Override
+    public PagedResult<Product> findByCategoriaPaginated(ProductCategory categoria, PageQuery query) {
+        return PagingMapper.toDomain(
+                jpaRepository.findByCategoriaAndDeletedAtIsNull(categoria, PagingMapper.toPageable(query)),
+                mapper::toDomain
+        );
+    }
+
+    @Override
     public List<Product> findAll() {
         return jpaRepository.findAllByDeletedAtIsNull().stream().map(mapper::toDomain).toList();
     }
@@ -68,12 +80,23 @@ public class ProductRepositoryAdapter implements ProductRepositoryPort {
     }
 
     @Override
-    public Page<Product> findAllPaginated(Pageable pageable) {
-        return jpaRepository.findAllByDeletedAtIsNull(pageable).map(mapper::toDomain);
+    public PagedResult<Product> findAllPaginated(PageQuery query) {
+        return PagingMapper.toDomain(
+                jpaRepository.findAllByDeletedAtIsNull(PagingMapper.toPageable(query)),
+                mapper::toDomain
+        );
     }
 
     @Override
-    public Page<Product> findByStoreIdPaginated(Long storeId, Pageable pageable) {
-        return jpaRepository.findByStoreId(storeId, pageable).map(mapper::toDomain);
+    public PagedResult<Product> findByStoreIdPaginated(Long storeId, PageQuery query) {
+        return PagingMapper.toDomain(
+                jpaRepository.findByStoreId(storeId, PagingMapper.toPageable(query)),
+                mapper::toDomain
+        );
+    }
+
+    @Override
+    public int decrementStock(Long productId, int cantidad) {
+        return jpaRepository.decrementStock(productId, cantidad);
     }
 }

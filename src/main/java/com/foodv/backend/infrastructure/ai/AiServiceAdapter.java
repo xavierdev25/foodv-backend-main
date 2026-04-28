@@ -3,7 +3,7 @@ package com.foodv.backend.infrastructure.ai;
 import com.foodv.backend.domain.model.ai.AiRecommendationRequest;
 import com.foodv.backend.domain.model.ai.AiRecommendationResponse;
 import com.foodv.backend.domain.port.out.AiRecommendationPort;
-import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.MediaType;
 import org.springframework.stereotype.Component;
@@ -11,16 +11,31 @@ import org.springframework.web.client.RestClient;
 
 import java.math.BigDecimal;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicLong;
 
+/**
+ * Llama al microservicio de IA con timeouts (configurados en {@code RestClientConfig}) y un
+ * circuit breaker simple basado en contador de fallos consecutivos.
+ * Si la IA no responde, retorna un fallback heurístico (top productos por categoría/precio).
+ */
+@Slf4j
 @Component
 public class AiServiceAdapter implements AiRecommendationPort {
+
+    private static final int FAILURE_THRESHOLD = 5;
+    private static final long OPEN_DURATION_MILLIS = 30_000L;
 
     private final RestClient restClient;
     private final String aiServiceUrl;
     private final String aiSecretKey;
+
+    private final AtomicInteger consecutiveFailures = new AtomicInteger();
+    private final AtomicLong openUntil = new AtomicLong();
 
     public AiServiceAdapter(RestClient restClient,
                             @Value("${ai.service.url:http://localhost:8001}") String aiServiceUrl,
@@ -32,6 +47,10 @@ public class AiServiceAdapter implements AiRecommendationPort {
 
     @Override
     public AiRecommendationResponse getRecommendations(AiRecommendationRequest request) {
+        if (System.currentTimeMillis() < openUntil.get()) {
+            log.warn("Circuit breaker IA abierto; usando fallback");
+            return fallback(request);
+        }
         try {
             List<Map<String, Object>> productsPayload = request.getAvailableProducts().stream()
                     .map(p -> {
@@ -60,10 +79,42 @@ public class AiServiceAdapter implements AiRecommendationPort {
                     .retrieve()
                     .body(Map.class);
 
+            consecutiveFailures.set(0);
             return parseResponse(response);
         } catch (Exception e) {
-            throw new RuntimeException("Error llamando al servicio de IA: " + e.getMessage());
+            log.warn("Falla llamando al servicio de IA: {}", e.getMessage());
+            int failures = consecutiveFailures.incrementAndGet();
+            if (failures >= FAILURE_THRESHOLD) {
+                openUntil.set(System.currentTimeMillis() + OPEN_DURATION_MILLIS);
+                log.error("Circuit breaker IA abierto durante {} ms tras {} fallos seguidos",
+                        OPEN_DURATION_MILLIS, failures);
+            }
+            return fallback(request);
         }
+    }
+
+    private AiRecommendationResponse fallback(AiRecommendationRequest request) {
+        List<AiRecommendationResponse.ProductRecommendation> recs = new ArrayList<>();
+        if (request.getAvailableProducts() != null) {
+            request.getAvailableProducts().stream()
+                    .sorted(Comparator
+                            .comparing((AiRecommendationRequest.ProductInfo p) -> p.precio() == null
+                                    ? BigDecimal.ZERO : p.precio()))
+                    .limit(Math.max(1, request.getMaxRecommendations()))
+                    .forEach(p -> recs.add(new AiRecommendationResponse.ProductRecommendation(
+                            p.id(),
+                            p.nombre(),
+                            p.precio(),
+                            p.categoria(),
+                            0.0,
+                            "Recomendación por defecto (servicio IA no disponible)"
+                    )));
+        }
+        return AiRecommendationResponse.builder()
+                .userId(request.getUserId())
+                .recommendations(recs)
+                .generatedBy("FALLBACK")
+                .build();
     }
 
     @SuppressWarnings("unchecked")

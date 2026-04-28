@@ -14,20 +14,39 @@ import java.util.Map;
 @RequiredArgsConstructor
 public class CloudinaryAdapter implements ImageStoragePort {
 
+    private static final int MAX_RETRIES = 2;
+
     private final Cloudinary cloudinary;
 
     @Override
     public String uploadImage(byte[] imageBytes, String filename, String folder) {
-        try {
-            Map options = ObjectUtils.asMap(
-                "folder", folder,
-                "resource_type", "image"
-            );
-            Map result = cloudinary.uploader().upload(imageBytes, options);
-            return (String) result.get("secure_url");
-        } catch (Exception e) {
-            throw new RuntimeException("Error subiendo imagen: " + e.getMessage());
+        Exception last = null;
+        for (int attempt = 1; attempt <= MAX_RETRIES + 1; attempt++) {
+            try {
+                @SuppressWarnings("rawtypes")
+                Map options = ObjectUtils.asMap(
+                        "folder", folder,
+                        "resource_type", "image",
+                        "use_filename", true,
+                        "unique_filename", true,
+                        "overwrite", false
+                );
+                @SuppressWarnings("rawtypes")
+                Map result = cloudinary.uploader().upload(imageBytes, options);
+                return (String) result.get("secure_url");
+            } catch (Exception e) {
+                last = e;
+                log.warn("Intento {} fallido subiendo imagen ({}): {}", attempt, filename, e.getMessage());
+                try {
+                    Thread.sleep(150L * attempt);
+                } catch (InterruptedException ie) {
+                    Thread.currentThread().interrupt();
+                    break;
+                }
+            }
         }
+        log.error("No fue posible subir la imagen tras {} intentos", MAX_RETRIES + 1, last);
+        throw new IllegalStateException("Error subiendo la imagen. Intenta nuevamente más tarde.");
     }
 
     @Override

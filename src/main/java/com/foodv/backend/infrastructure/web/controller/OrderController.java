@@ -1,12 +1,20 @@
 package com.foodv.backend.infrastructure.web.controller;
 
+import com.foodv.backend.domain.common.PageQuery;
+import com.foodv.backend.domain.common.PagedResult;
 import com.foodv.backend.domain.model.order.Order;
 import com.foodv.backend.domain.model.order.OrderStatus;
+import com.foodv.backend.domain.model.user.User;
+import com.foodv.backend.domain.model.user.UserRole;
 import com.foodv.backend.domain.port.in.order.CancelOrderUseCase;
 import com.foodv.backend.domain.port.in.order.CreateOrderUseCase;
 import com.foodv.backend.domain.port.in.order.FindOrderUseCase;
 import com.foodv.backend.domain.port.in.order.UpdateOrderStatusUseCase;
-import com.foodv.backend.infrastructure.persistence.repository.OrderStatusHistoryRepository;
+import com.foodv.backend.domain.port.out.OrderHistoryPort;
+import com.foodv.backend.infrastructure.security.AuthenticatedUserResolver;
+import com.foodv.backend.infrastructure.security.OwnershipService;
+import com.foodv.backend.infrastructure.web.dto.common.PageResponse;
+import com.foodv.backend.infrastructure.web.dto.order.CancelOrderRequest;
 import com.foodv.backend.infrastructure.web.dto.order.CreateOrderRequest;
 import com.foodv.backend.infrastructure.web.dto.order.OrderResponse;
 import com.foodv.backend.infrastructure.web.dto.order.OrderStatusHistoryResponse;
@@ -20,12 +28,8 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.data.domain.*;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.web.bind.annotation.*;
-import com.foodv.backend.infrastructure.config.JwtService;
-import com.foodv.backend.domain.port.out.UserRepositoryPort;
-
-import java.util.List;
 
 @Tag(name = "Órdenes")
 @RestController
@@ -37,10 +41,10 @@ public class OrderController {
     private final FindOrderUseCase findOrderUseCase;
     private final UpdateOrderStatusUseCase updateOrderStatusUseCase;
     private final CancelOrderUseCase cancelOrderUseCase;
+    private final OrderHistoryPort orderHistoryPort;
     private final OrderWebMapper mapper;
-    private final OrderStatusHistoryRepository orderStatusHistoryRepository;
-    private final JwtService jwtService;
-    private final UserRepositoryPort userRepositoryPort;
+    private final AuthenticatedUserResolver currentUser;
+    private final OwnershipService ownershipService;
 
     @Operation(summary = "Crear orden")
     @ApiResponses({
@@ -50,129 +54,129 @@ public class OrderController {
             @ApiResponse(responseCode = "404", description = "Recurso no encontrado")
     })
     @PostMapping
-    public ResponseEntity<OrderResponse> create(
-            @Valid @RequestBody CreateOrderRequest request,
-            @RequestHeader("Authorization") String authHeader) {
-        String email = jwtService.extractEmail(authHeader.substring(7));
-        Long userId = userRepositoryPort.findByEmail(email)
-                .orElseThrow(() -> new IllegalStateException("Usuario no encontrado"))
-                .getId();
+    public ResponseEntity<OrderResponse> create(@Valid @RequestBody CreateOrderRequest request) {
+        Long userId = currentUser.currentUser().getId();
         Order order = createOrderUseCase.execute(mapper.toCommandWithUser(request, userId));
         return ResponseEntity.status(HttpStatus.CREATED).body(mapper.toResponse(order));
     }
 
-    @Operation(summary = "Listar órdenes paginado")
-    @ApiResponses({
-        @ApiResponse(responseCode = "200", description = "Página de órdenes"),
-        @ApiResponse(responseCode = "401", description = "No autenticado")
-    })
+    @Operation(summary = "Listar órdenes (sólo ADMIN)")
     @GetMapping
-    public ResponseEntity<Page<OrderResponse>> findAll(
+    public ResponseEntity<PageResponse<OrderResponse>> findAll(
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "20") int size,
             @RequestParam(defaultValue = "id") String sortBy
     ) {
-        Pageable pageable = PageRequest.of(page, size, Sort.by(sortBy));
-        return ResponseEntity.ok(findOrderUseCase.findAllPaginated(pageable).map(mapper::toResponse));
+        User me = currentUser.currentUser();
+        if (me.getRole() != UserRole.ADMIN) {
+            throw new AccessDeniedException("Sólo ADMIN puede listar todas las órdenes");
+        }
+        PagedResult<Order> page1 = findOrderUseCase.findAllPaginated(new PageQuery(page, size, sortBy, true));
+        return ResponseEntity.ok(mapper.toPageResponse(page1));
     }
 
-    @Operation(summary = "Obtener orden")
+    @Operation(summary = "Listar mis órdenes (filtra por rol)")
+    @GetMapping("/me")
+    public ResponseEntity<PageResponse<OrderResponse>> findMine(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "20") int size,
+            @RequestParam(defaultValue = "id") String sortBy
+    ) {
+        String email = currentUser.currentEmail();
+        return ResponseEntity.ok(mapper.toPageResponse(
+                findOrderUseCase.findForUser(email, new PageQuery(page, size, sortBy, false))
+        ));
+    }
+
+    @Operation(summary = "Obtener orden con verificación de ownership")
     @ApiResponses({
-        @ApiResponse(responseCode = "200", description = "Orden encontrada"),
-        @ApiResponse(responseCode = "401", description = "No autenticado"),
-        @ApiResponse(responseCode = "403", description = "Acceso denegado"),
-        @ApiResponse(responseCode = "404", description = "Orden no encontrada")
+            @ApiResponse(responseCode = "200", description = "Orden encontrada"),
+            @ApiResponse(responseCode = "401", description = "No autenticado"),
+            @ApiResponse(responseCode = "403", description = "Acceso denegado"),
+            @ApiResponse(responseCode = "404", description = "Orden no encontrada")
     })
     @GetMapping("/{id}")
-    public ResponseEntity<OrderResponse> findById(
-            @PathVariable Long id,
-            @RequestHeader("Authorization") String authHeader) {
-        String email = jwtService.extractEmail(authHeader.substring(7));
+    public ResponseEntity<OrderResponse> findById(@PathVariable Long id) {
+        String email = currentUser.currentEmail();
         return ResponseEntity.ok(mapper.toResponse(findOrderUseCase.findByIdForUser(id, email)));
     }
 
-    @Operation(summary = "Órdenes por usuario")
+    @Operation(summary = "Órdenes por usuario (sólo el propio o ADMIN)")
     @GetMapping("/user/{userId}")
-    public ResponseEntity<Page<OrderResponse>> findByUserId(
+    public ResponseEntity<PageResponse<OrderResponse>> findByUserId(
             @PathVariable Long userId,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "20") int size,
             @RequestParam(defaultValue = "id") String sortBy
     ) {
-        Pageable pageable = PageRequest.of(page, size, Sort.by(sortBy));
-        return ResponseEntity.ok(findOrderUseCase.findByUserIdPaginated(userId, pageable).map(mapper::toResponse));
+        ownershipService.requireSelfOrAdmin(currentUser.currentUser(), userId);
+        return ResponseEntity.ok(mapper.toPageResponse(
+                findOrderUseCase.findByUserIdPaginated(userId, new PageQuery(page, size, sortBy, false))
+        ));
     }
 
-    @Operation(summary = "Órdenes por tienda")
+    @Operation(summary = "Órdenes por tienda (sólo dueño o ADMIN)")
     @GetMapping("/store/{storeId}")
-    public ResponseEntity<Page<OrderResponse>> findByStoreId(
+    public ResponseEntity<PageResponse<OrderResponse>> findByStoreId(
             @PathVariable Long storeId,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "20") int size,
             @RequestParam(defaultValue = "id") String sortBy
     ) {
-        Pageable pageable = PageRequest.of(page, size, Sort.by(sortBy));
-        return ResponseEntity.ok(findOrderUseCase.findByStoreIdPaginated(storeId, pageable).map(mapper::toResponse));
+        ownershipService.requireStoreOwnerOrAdmin(currentUser.currentUser(), storeId);
+        return ResponseEntity.ok(mapper.toPageResponse(
+                findOrderUseCase.findByStoreIdPaginated(storeId, new PageQuery(page, size, sortBy, false))
+        ));
     }
 
-    @Operation(summary = "Órdenes por estado")
+    @Operation(summary = "Órdenes por estado (sólo ADMIN)")
     @GetMapping("/status/{status}")
-    public ResponseEntity<List<OrderResponse>> findByStatus(@PathVariable OrderStatus status) {
-        List<OrderResponse> responses = findOrderUseCase.findByStatus(status).stream()
-                .map(mapper::toResponse)
-                .toList();
-        return ResponseEntity.ok(responses);
+    public ResponseEntity<PageResponse<OrderResponse>> findByStatus(
+            @PathVariable OrderStatus status,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "20") int size,
+            @RequestParam(defaultValue = "id") String sortBy
+    ) {
+        if (currentUser.currentUser().getRole() != UserRole.ADMIN) {
+            throw new AccessDeniedException("Sólo ADMIN puede listar por estado");
+        }
+        return ResponseEntity.ok(mapper.toPageResponse(
+                findOrderUseCase.findByStatusPaginated(status, new PageQuery(page, size, sortBy, false))
+        ));
     }
 
     @Operation(summary = "Cambiar estado de orden")
-    @ApiResponses({
-            @ApiResponse(responseCode = "200", description = "Estado actualizado"),
-            @ApiResponse(responseCode = "400", description = "Transición inválida"),
-            @ApiResponse(responseCode = "403", description = "Acceso denegado"),
-            @ApiResponse(responseCode = "404", description = "Orden no encontrada")
-    })
     @PatchMapping("/{id}/status")
     public ResponseEntity<OrderResponse> updateStatus(
             @PathVariable Long id,
-            @Valid @RequestBody UpdateOrderStatusRequest request,
-            @RequestHeader("Authorization") String authHeader) {
-        String email = jwtService.extractEmail(authHeader.substring(7));
-        Long changedBy = userRepositoryPort.findByEmail(email)
-                .orElseThrow(() -> new IllegalStateException("Usuario no encontrado"))
-                .getId();
-        Order order = updateOrderStatusUseCase.execute(id, request.status(), changedBy);
+            @Valid @RequestBody UpdateOrderStatusRequest request) {
+        User me = currentUser.currentUser();
+        ownershipService.requireOrderAccess(me, id);
+        Order order = updateOrderStatusUseCase.execute(id, request.status(), me.getId());
         return ResponseEntity.ok(mapper.toResponse(order));
     }
 
     @Operation(summary = "Cancelar orden")
-    @ApiResponses({
-        @ApiResponse(responseCode = "200", description = "Orden cancelada"),
-        @ApiResponse(responseCode = "400", description = "No se puede cancelar"),
-        @ApiResponse(responseCode = "401", description = "No autenticado"),
-        @ApiResponse(responseCode = "404", description = "Orden no encontrada")
-    })
     @PatchMapping("/{id}/cancel")
-    public ResponseEntity<OrderResponse> cancel(@PathVariable Long id) {
-        Order order = cancelOrderUseCase.execute(id);
+    public ResponseEntity<OrderResponse> cancel(
+            @PathVariable Long id,
+            @RequestBody(required = false) CancelOrderRequest request) {
+        User me = currentUser.currentUser();
+        ownershipService.requireOrderAccess(me, id);
+        String motivo = request != null ? request.motivo() : null;
+        Order order = cancelOrderUseCase.execute(
+                new CancelOrderUseCase.CancelOrderCommand(id, me.getId(), motivo));
         return ResponseEntity.ok(mapper.toResponse(order));
     }
 
-    @Operation(summary = "Historial de estados")
-    @ApiResponses({
-        @ApiResponse(responseCode = "200", description = "Historial encontrado"),
-        @ApiResponse(responseCode = "401", description = "No autenticado"),
-        @ApiResponse(responseCode = "404", description = "Orden no encontrada")
-    })
+    @Operation(summary = "Historial de estados (sólo participantes)")
     @GetMapping("/{id}/history")
-    public ResponseEntity<List<OrderStatusHistoryResponse>> getHistory(@PathVariable Long id) {
-        return ResponseEntity.ok(
-            orderStatusHistoryRepository.findByOrderIdOrderByCreadoEnAsc(id)
-                .stream()
+    public ResponseEntity<java.util.List<OrderStatusHistoryResponse>> getHistory(@PathVariable Long id) {
+        ownershipService.requireOrderAccess(currentUser.currentUser(), id);
+        java.util.List<OrderStatusHistoryResponse> result = orderHistoryPort.findByOrderId(id).stream()
                 .map(h -> new OrderStatusHistoryResponse(
-                    h.getId(), h.getOrderId(), h.getStatus(),
-                    h.getChangedBy(), h.getNotas(), h.getCreadoEn()
-                ))
-                .toList()
-        );
+                        h.id(), h.orderId(), h.status(), h.changedBy(), h.notas(), h.creadoEn()))
+                .toList();
+        return ResponseEntity.ok(result);
     }
 }

@@ -1,16 +1,23 @@
 package com.foodv.backend.application.payment;
 
+import com.foodv.backend.domain.model.order.Order;
 import com.foodv.backend.domain.model.payment.Payment;
 import com.foodv.backend.domain.model.payment.PaymentStatus;
 import com.foodv.backend.domain.port.in.payment.CreatePaymentUseCase;
 import com.foodv.backend.domain.port.out.OrderRepositoryPort;
 import com.foodv.backend.domain.port.out.PaymentGatewayPort;
 import com.foodv.backend.domain.port.out.PaymentRepositoryPort;
+import com.foodv.backend.domain.port.out.UserRepositoryPort;
+import com.foodv.backend.domain.model.user.User;
+import com.foodv.backend.domain.model.user.UserRole;
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
 @Service
@@ -20,33 +27,53 @@ public class CreatePaymentHandler implements CreatePaymentUseCase {
     private final PaymentRepositoryPort paymentRepositoryPort;
     private final PaymentGatewayPort paymentGatewayPort;
     private final OrderRepositoryPort orderRepositoryPort;
+    private final UserRepositoryPort userRepositoryPort;
 
     @Value("${MERCADOPAGO_NOTIFICATION_URL:http://localhost:8080/api/payments/webhook}")
     private String notificationUrl;
 
     @Override
+    @Transactional
     public Payment execute(CreatePaymentCommand command) {
-        orderRepositoryPort.findById(command.orderId())
+        if (command.orderId() == null || command.requesterEmail() == null) {
+            throw new IllegalArgumentException("Datos de pago incompletos");
+        }
+
+        User requester = userRepositoryPort.findByEmail(command.requesterEmail())
+                .orElseThrow(() -> new AccessDeniedException("Usuario no encontrado"));
+
+        Order order = orderRepositoryPort.findByIdWithItems(command.orderId())
                 .orElseThrow(() -> new EntityNotFoundException("Orden no encontrada"));
+
+        if (requester.getRole() != UserRole.ADMIN && !requester.getId().equals(order.getUserId())) {
+            throw new AccessDeniedException("No puedes pagar una orden ajena");
+        }
 
         if (paymentRepositoryPort.findByOrderId(command.orderId()).isPresent()) {
             throw new IllegalArgumentException("Ya existe un pago para esta orden");
         }
 
+        BigDecimal amount = computeAmount(order);
+        if (amount.signum() <= 0) {
+            throw new IllegalArgumentException("Monto inválido para la orden");
+        }
+
+        String description = "Pago FoodV - Orden #" + order.getId();
+
         PaymentGatewayPort.PaymentRequest request = new PaymentGatewayPort.PaymentRequest(
-                command.orderId(),
-                command.userId(),
-                command.amount(),
-                command.description(),
+                order.getId(),
+                order.getUserId(),
+                amount,
+                description,
                 notificationUrl
         );
 
         PaymentGatewayPort.PaymentResponse response = paymentGatewayPort.createPayment(request);
 
         Payment payment = Payment.builder()
-                .orderId(command.orderId())
-                .userId(command.userId())
-                .amount(command.amount())
+                .orderId(order.getId())
+                .userId(order.getUserId())
+                .amount(amount)
                 .status(PaymentStatus.PENDIENTE)
                 .externalId(response.externalId())
                 .paymentUrl(response.paymentUrl())
@@ -55,5 +82,13 @@ public class CreatePaymentHandler implements CreatePaymentUseCase {
                 .build();
 
         return paymentRepositoryPort.save(payment);
+    }
+
+    private BigDecimal computeAmount(Order order) {
+        BigDecimal total = order.getTotal() == null ? BigDecimal.ZERO : order.getTotal();
+        BigDecimal propina = order.getPropina() == null ? BigDecimal.ZERO : order.getPropina();
+        BigDecimal tarifa = order.getTarifaServicio() == null ? BigDecimal.ZERO : order.getTarifaServicio();
+        BigDecimal comision = order.getComisionFoodv() == null ? BigDecimal.ZERO : order.getComisionFoodv();
+        return total.add(propina).add(tarifa).add(comision);
     }
 }

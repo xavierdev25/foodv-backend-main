@@ -19,10 +19,18 @@ public class Order {
     private Long userId;
     private Long storeId;
     private Long aulaId;
+    private Long repartidorId;
     private List<OrderItem> items;
     private BigDecimal total;
+    private BigDecimal propina;
+    private BigDecimal tarifaServicio;
+    private BigDecimal comisionFoodv;
     private OrderStatus status;
     private String notas;
+    private String motivoCancelacion;
+    private Long canceladoPor;
+    private String codigoConfirmacion;
+    private String fotoEntregaUrl;
     private LocalDateTime creadoEn;
     private LocalDateTime actualizadoEn;
 }

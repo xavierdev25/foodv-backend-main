@@ -1,14 +1,14 @@
 package com.foodv.backend.infrastructure.web.dto.payment;
 
-import jakarta.validation.constraints.DecimalMin;
-import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Positive;
 
-import java.math.BigDecimal;
-
+/**
+ * El cliente sólo puede indicar la orden a pagar.
+ * El monto, descripción y usuario se derivan del servidor para evitar manipulación.
+ */
 public record CreatePaymentRequest(
-        @NotNull Long orderId,
-        @NotNull Long userId,
-        @NotNull @DecimalMin("0.01") BigDecimal amount,
-        @NotBlank String description
+        @NotNull(message = "orderId es obligatorio")
+        @Positive(message = "orderId debe ser positivo")
+        Long orderId
 ) {}

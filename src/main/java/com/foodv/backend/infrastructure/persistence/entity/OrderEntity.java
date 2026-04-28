@@ -31,8 +31,9 @@ public class OrderEntity {
     @Column(name = "aula_id", nullable = false)
     private Long aulaId;
 
-    @OneToMany(cascade = CascadeType.ALL, fetch = FetchType.EAGER, orphanRemoval = true)
+    @OneToMany(cascade = CascadeType.ALL, fetch = FetchType.LAZY, orphanRemoval = true)
     @JoinColumn(name = "order_id", nullable = false)
+    @org.hibernate.annotations.BatchSize(size = 50)
     @Builder.Default
     private List<OrderItemEntity> items = new ArrayList<>();
 
@@ -50,4 +51,28 @@ public class OrderEntity {
 
     @Column(name = "actualizado_en")
     private LocalDateTime actualizadoEn;
+
+    @Column(name = "repartidor_id")
+    private Long repartidorId;
+
+    @Column(name = "motivo_cancelacion")
+    private String motivoCancelacion;
+
+    @Column(name = "cancelado_por")
+    private Long canceladoPor;
+
+    @Column(name = "propina", precision = 10, scale = 2)
+    private BigDecimal propina;
+
+    @Column(name = "tarifa_servicio", precision = 10, scale = 2)
+    private BigDecimal tarifaServicio;
+
+    @Column(name = "comision_foodv", precision = 10, scale = 2)
+    private BigDecimal comisionFoodv;
+
+    @Column(name = "codigo_confirmacion", length = 4)
+    private String codigoConfirmacion;
+
+    @Column(name = "foto_entrega_url")
+    private String fotoEntregaUrl;
 }

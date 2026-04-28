@@ -1,5 +1,7 @@
 package com.foodv.backend.domain.port.out;
 
+import com.foodv.backend.domain.common.PageQuery;
+import com.foodv.backend.domain.common.PagedResult;
 import com.foodv.backend.domain.model.store.Store;
 
 import java.util.List;
@@ -18,6 +20,10 @@ public interface StoreRepositoryPort {
     List<Store> findAll();
 
     List<Store> findAllActivas();
+
+    PagedResult<Store> findAllPaginated(PageQuery query);
+
+    PagedResult<Store> findAllActivasPaginated(PageQuery query);
 
     void deleteById(Long id);
 }
