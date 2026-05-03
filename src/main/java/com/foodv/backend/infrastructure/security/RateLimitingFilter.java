@@ -67,7 +67,7 @@ public class RateLimitingFilter extends OncePerRequestFilter {
         if (uri.contains("/ai/")) {
             return new Bucket("ai", 5, "Has excedido el límite de 5 recomendaciones por minuto.");
         }
-        if (uri.startsWith("/auth/login") || uri.startsWith("/auth/register") || uri.startsWith("/auth/refresh")) {
+        if (uri.contains("/auth/login") || uri.contains("/auth/register") || uri.contains("/auth/refresh")) {
             return new Bucket("auth", 30, "Demasiados intentos de autenticación. Espera un minuto.");
         }
         if (uri.startsWith("/payments")) {

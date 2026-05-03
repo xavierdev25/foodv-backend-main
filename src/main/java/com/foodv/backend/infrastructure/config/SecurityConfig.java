@@ -33,14 +33,15 @@ public class SecurityConfig {
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
                         // Endpoints estrictamente públicos
-                        .requestMatchers(HttpMethod.POST, "/auth/login", "/auth/register", "/auth/refresh").permitAll()
+                        .requestMatchers(HttpMethod.POST, "/auth/login", "/auth/register", "/auth/refresh",
+                                "/api/auth/login", "/api/auth/register", "/api/auth/refresh").permitAll()
                         .requestMatchers("/actuator/health", "/actuator/info", "/actuator/prometheus").permitAll()
                         .requestMatchers("/swagger-ui/**", "/swagger-ui.html", "/api-docs/**", "/v3/api-docs/**").permitAll()
                         .requestMatchers("/payments/webhook").permitAll()
                         .requestMatchers("/ws/**").permitAll() // handshake; auth se valida por ChannelInterceptor
 
                         // Logout requiere autenticación (para revocar tokens propios)
-                        .requestMatchers(HttpMethod.POST, "/auth/logout").authenticated()
+                        .requestMatchers(HttpMethod.POST, "/auth/logout", "/api/auth/logout").authenticated()
 
                         // Mi perfil
                         .requestMatchers(HttpMethod.GET, "/users/me").authenticated()

@@ -7,6 +7,30 @@ spring:
     properties:
       hibernate:
         format_sql: true
+  data:
+    redis:
+      host: ${REDIS_HOST:localhost}
+      port: ${REDIS_PORT:6380}
+
+# ── JWT (valores por defecto para desarrollo) ─
+jwt:
+  secret: ${JWT_SECRET:ZGV2LXNlY3JldC1rZXktcGFyYS1mb29kdi1iYWNrZW5kLWRlc2Fycm9sbG8=}
+  expiration: ${JWT_EXPIRATION:86400000}
+  refresh-expiration: ${JWT_REFRESH_EXPIRATION:604800000}
+  issuer: ${JWT_ISSUER:foodv-backend}
+
+# ── Cloudinary (placeholder para dev) ────────
+cloudinary:
+  cloud-name: ${CLOUDINARY_CLOUD_NAME:dev-placeholder}
+  api-key: ${CLOUDINARY_API_KEY:dev-placeholder}
+  api-secret: ${CLOUDINARY_API_SECRET:dev-placeholder}
+
+# ── MercadoPago (placeholder para dev) ───────
+mercadopago:
+  access-token: ${MERCADOPAGO_ACCESS_TOKEN:TEST-dev-placeholder}
+  public-key: ${MERCADOPAGO_PUBLIC_KEY:TEST-dev-placeholder}
+  webhook-secret: ${MERCADOPAGO_WEBHOOK_SECRET:dev-placeholder}
+  notification-url: ${MERCADOPAGO_NOTIFICATION_URL:http://localhost:8080/api/payments/webhook}
 
 logging:
   level:

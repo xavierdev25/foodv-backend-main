@@ -6,6 +6,7 @@ import com.mercadopago.client.preference.PreferenceBackUrlsRequest;
 import com.mercadopago.client.preference.PreferenceClient;
 import com.mercadopago.client.preference.PreferenceItemRequest;
 import com.mercadopago.client.preference.PreferenceRequest;
+import com.mercadopago.exceptions.MPApiException;
 import com.mercadopago.resources.preference.Preference;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -28,6 +29,7 @@ public class MercadoPagoAdapter implements PaymentGatewayPort {
             PreferenceItemRequest item = PreferenceItemRequest.builder()
                     .title(request.description())
                     .quantity(1)
+                    .currencyId("PEN")
                     .unitPrice(request.amount())
                     .build();
 
@@ -40,15 +42,28 @@ public class MercadoPagoAdapter implements PaymentGatewayPort {
             PreferenceRequest preferenceRequest = PreferenceRequest.builder()
                     .items(List.of(item))
                     .backUrls(backUrls)
-                    .notificationUrl(request.notificationUrl())
+                    .notificationUrl(
+                            (request.notificationUrl() != null && request.notificationUrl().startsWith("https://"))
+                                    ? request.notificationUrl()
+                                    : null
+                    )
                     .externalReference(request.orderId().toString())
                     .build();
 
             Preference preference = preferenceClient.create(preferenceRequest);
 
             return new PaymentResponse(preference.getId(), preference.getInitPoint(), PaymentStatus.PENDIENTE);
+        } catch (MPApiException e) {
+            log.error("MercadoPago API error para orden {}: status={} | body={}",
+                    request.orderId(),
+                    e.getStatusCode(),
+                    e.getApiResponse() != null ? e.getApiResponse().getContent() : "sin body");
+            throw new IllegalStateException("No fue posible crear el pago. Inténtalo más tarde.");
         } catch (Exception e) {
-            log.error("Error al crear pago en MercadoPago para orden {}: {}", request.orderId(), e.getMessage());
+            log.error("Error inesperado creando pago para orden {}: {} | tipo: {}",
+                    request.orderId(),
+                    e.getMessage(),
+                    e.getClass().getName());
             throw new IllegalStateException("No fue posible crear el pago. Inténtalo más tarde.");
         }
     }
