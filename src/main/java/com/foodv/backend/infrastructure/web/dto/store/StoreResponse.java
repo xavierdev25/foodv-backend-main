@@ -10,5 +10,7 @@ public record StoreResponse(
         String telefono,
         Long ownerId,
         boolean activo,
-        LocalDateTime creadoEn
+        LocalDateTime creadoEn,
+        String horarioApertura,
+        String horarioCierre
 ) {}

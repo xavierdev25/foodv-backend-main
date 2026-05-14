@@ -20,6 +20,7 @@ public interface StoreJpaRepository extends JpaRepository<StoreEntity, Long> {
     boolean existsByOwnerId(Long ownerId);
     List<StoreEntity> findByActivoTrueAndDeletedAtIsNull();
     Page<StoreEntity> findByActivoTrueAndDeletedAtIsNull(Pageable pageable);
+    Page<StoreEntity> findByNombreContainingIgnoreCaseAndActivoTrueAndDeletedAtIsNull(String nombre, Pageable pageable);
 
     @Deprecated
     List<StoreEntity> findByActivoTrue();

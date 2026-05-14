@@ -15,4 +15,6 @@ public interface PaymentGatewayPort {
     PaymentStatus getPaymentStatus(String externalId);
 
     boolean refundPayment(String externalId);
+
+    String getExternalReference(String paymentId);
 }

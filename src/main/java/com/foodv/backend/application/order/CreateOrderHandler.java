@@ -29,8 +29,8 @@ import java.util.Map;
 @RequiredArgsConstructor
 public class CreateOrderHandler implements CreateOrderUseCase {
 
-    private static final BigDecimal TARIFA_SERVICIO = new BigDecimal("1.50");
-    private static final BigDecimal COMISION_FOODV = new BigDecimal("0.50");
+    private static final BigDecimal TARIFA_SERVICIO = new BigDecimal("0.50");
+    private static final BigDecimal COMISION_FOODV = new BigDecimal("0.20");
     private static final int MAX_PROPINA_RATIO_PERCENT = 50;
 
     private final OrderRepositoryPort orderRepositoryPort;

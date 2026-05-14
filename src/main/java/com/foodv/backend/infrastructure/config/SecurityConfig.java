@@ -37,8 +37,8 @@ public class SecurityConfig {
                                 "/api/auth/login", "/api/auth/register", "/api/auth/refresh").permitAll()
                         .requestMatchers("/actuator/health", "/actuator/info", "/actuator/prometheus").permitAll()
                         .requestMatchers("/swagger-ui/**", "/swagger-ui.html", "/api-docs/**", "/v3/api-docs/**").permitAll()
-                        .requestMatchers("/payments/webhook").permitAll()
-                        .requestMatchers("/ws/**").permitAll() // handshake; auth se valida por ChannelInterceptor
+                        .requestMatchers("/ws/**").permitAll()
+                        .requestMatchers("/error").permitAll()// handshake; auth se valida por ChannelInterceptor
 
                         // Logout requiere autenticación (para revocar tokens propios)
                         .requestMatchers(HttpMethod.POST, "/auth/logout", "/api/auth/logout").authenticated()
@@ -78,14 +78,22 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.PUT, "/products/**").hasAnyRole("ADMIN", "COMERCIO")
                         .requestMatchers(HttpMethod.DELETE, "/products/**").hasAnyRole("ADMIN", "COMERCIO")
 
+                        // Favorites
+                        .requestMatchers("/favorites/**").authenticated()
+
+                        // Ratings
+                        .requestMatchers(HttpMethod.GET, "/ratings/stores/**").authenticated()
+                        .requestMatchers(HttpMethod.POST, "/ratings/orders/**").authenticated()
+                        .requestMatchers(HttpMethod.GET, "/ratings/orders/**").authenticated()
+
                         // Orders
                         .requestMatchers(HttpMethod.POST, "/orders").hasAnyRole("ESTUDIANTE", "ADMIN")
                         .requestMatchers(HttpMethod.GET, "/orders/**").authenticated()
                         .requestMatchers(HttpMethod.PATCH, "/orders/**").authenticated()
 
                         // Payments
+                        .requestMatchers(HttpMethod.POST, "/payments/webhook").permitAll()
                         .requestMatchers("/payments/**").authenticated()
-
                         // AI
                         .requestMatchers("/ai/**").authenticated()
 

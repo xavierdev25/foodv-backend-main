@@ -1,0 +1,93 @@
+package com.foodv.backend.application.rating;
+
+import com.foodv.backend.domain.model.order.Order;
+import com.foodv.backend.domain.model.order.OrderStatus;
+import com.foodv.backend.domain.model.rating.Rating;
+import com.foodv.backend.domain.model.rating.StoreRatingSummary;
+import com.foodv.backend.domain.port.in.rating.RatingUseCase;
+import com.foodv.backend.domain.port.out.OrderRepositoryPort;
+import com.foodv.backend.domain.port.out.RatingRepositoryPort;
+import com.foodv.backend.domain.port.out.StoreRepositoryPort;
+import jakarta.persistence.EntityNotFoundException;
+import lombok.RequiredArgsConstructor;
+import org.springframework.security.access.AccessDeniedException;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import java.time.LocalDateTime;
+import java.util.List;
+
+@Service
+@RequiredArgsConstructor
+public class RatingHandler implements RatingUseCase {
+
+    private final RatingRepositoryPort ratingRepositoryPort;
+    private final OrderRepositoryPort orderRepositoryPort;
+    private final StoreRepositoryPort storeRepositoryPort;
+
+    @Override
+    @Transactional
+    public Rating rateOrder(Long userId, Long orderId, Integer rating, String comentario) {
+        validateRating(rating);
+        validateComentario(comentario);
+
+        Order order = orderRepositoryPort.findById(orderId)
+                .orElseThrow(() -> new EntityNotFoundException("Orden no encontrada"));
+
+        if (!order.getUserId().equals(userId)) {
+            throw new AccessDeniedException("Sólo el dueño de la orden puede calificarla");
+        }
+
+        if (order.getStatus() != OrderStatus.ENTREGADO) {
+            throw new IllegalStateException("Sólo se puede calificar una orden entregada");
+        }
+
+        if (ratingRepositoryPort.existsByOrderId(orderId)) {
+            throw new IllegalStateException("La orden ya fue calificada");
+        }
+
+        return ratingRepositoryPort.save(Rating.builder()
+                .orderId(orderId)
+                .userId(userId)
+                .storeId(order.getStoreId())
+                .rating(rating)
+                .comentario(comentario)
+                .creadoEn(LocalDateTime.now())
+                .build());
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public Rating findByOrderId(Long orderId) {
+        return ratingRepositoryPort.findByOrderId(orderId)
+                .orElseThrow(() -> new EntityNotFoundException("Calificación no encontrada"));
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public StoreRatingSummary findStoreRatingSummary(Long storeId) {
+        storeRepositoryPort.findById(storeId)
+                .orElseThrow(() -> new EntityNotFoundException("Tienda no encontrada"));
+        return ratingRepositoryPort.findStoreRatingSummary(storeId);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<Rating> findByStoreId(Long storeId) {
+        storeRepositoryPort.findById(storeId)
+                .orElseThrow(() -> new EntityNotFoundException("Tienda no encontrada"));
+        return ratingRepositoryPort.findByStoreId(storeId);
+    }
+
+    private void validateRating(Integer rating) {
+        if (rating == null || rating < 1 || rating > 5) {
+            throw new IllegalArgumentException("Rating debe estar entre 1 y 5");
+        }
+    }
+
+    private void validateComentario(String comentario) {
+        if (comentario != null && comentario.length() > 500) {
+            throw new IllegalArgumentException("Comentario máximo 500 caracteres");
+        }
+    }
+}

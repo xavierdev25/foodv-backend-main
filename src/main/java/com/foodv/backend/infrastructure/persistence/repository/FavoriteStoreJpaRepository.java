@@ -1,0 +1,20 @@
+package com.foodv.backend.infrastructure.persistence.repository;
+
+import com.foodv.backend.infrastructure.persistence.entity.FavoriteStoreEntity;
+import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.stereotype.Repository;
+
+import java.util.List;
+import java.util.Optional;
+
+@Repository
+public interface FavoriteStoreJpaRepository extends JpaRepository<FavoriteStoreEntity, Long> {
+
+    Optional<FavoriteStoreEntity> findByUserIdAndStoreId(Long userId, Long storeId);
+
+    List<FavoriteStoreEntity> findByUserIdOrderByCreadoEnDesc(Long userId);
+
+    boolean existsByUserIdAndStoreId(Long userId, Long storeId);
+
+    void deleteByUserIdAndStoreId(Long userId, Long storeId);
+}

@@ -117,4 +117,17 @@ public class StoreController {
         deleteStoreUseCase.execute(id);
         return ResponseEntity.noContent().build();
     }
+
+    @Operation(summary = "Buscar tiendas por nombre")
+    @GetMapping("/search")
+    public ResponseEntity<PageResponse<StoreResponse>> search(
+            @RequestParam(required = false, defaultValue = "") String nombre,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "20") int size
+    ) {
+        return ResponseEntity.ok(PageResponse.from(
+                storeRepositoryPort.findByNombreContaining(nombre, new PageQuery(page, size, "nombre", true))
+                        .map(mapper::toResponse)
+        ));
+    }
 }

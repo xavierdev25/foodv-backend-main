@@ -151,6 +151,9 @@ public class OrderController {
             @PathVariable Long id,
             @Valid @RequestBody UpdateOrderStatusRequest request) {
         User me = currentUser.currentUser();
+        if (me.getRole() == UserRole.ESTUDIANTE) {
+            throw new AccessDeniedException("Estudiantes no pueden cambiar estado de órdenes");
+        }
         ownershipService.requireOrderAccess(me, id);
         Order order = updateOrderStatusUseCase.execute(id, request.status(), me.getId());
         return ResponseEntity.ok(mapper.toResponse(order));

@@ -17,6 +17,7 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
@@ -136,14 +137,16 @@ public class PaymentController {
             @RequestBody String rawBody,
             @RequestHeader(value = "x-signature", required = false) String signature,
             @RequestHeader(value = "x-request-id", required = false) String requestId,
-            @RequestParam(value = "data.id", required = false) String dataId) {
-
-        String externalId = dataId;
+            @RequestParam(value = "data.id", required = false) String dataId,
+            @RequestParam(value = "id", required = false) String idParam,
+            HttpServletRequest request) {
+        String signedDataId = dataId != null ? dataId : idParam;
+        String externalId = signedDataId;
         String action = null;
         try {
             Map<String, Object> payload = OBJECT_MAPPER.readValue(rawBody, new TypeReference<>() {});
             Object dataObj = payload.get("data");
-            if (dataObj instanceof Map<?, ?> dataMap) {
+            if ((externalId == null || externalId.isBlank()) && dataObj instanceof Map<?, ?> dataMap) {
                 Object idObj = dataMap.get("id");
                 if (idObj != null) externalId = idObj.toString();
             }
@@ -154,14 +157,29 @@ public class PaymentController {
             return ResponseEntity.badRequest().build();
         }
 
-        if (!signatureVerifier.verify(signature, requestId, externalId)) {
-            log.warn("Webhook MercadoPago: firma inválida. requestId={}, dataId={}", requestId, externalId);
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+        if (signatureVerifier.shouldVerify()) {
+            if (signature == null || requestId == null) {
+                log.warn("Webhook rechazado: falta firma o request-id. dataId={}", externalId);
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+            } else if (!signatureVerifier.verify(signature, requestId, signedDataId)) {
+                log.warn("Webhook MercadoPago: firma inválida. requestId={}, signedDataId={}",
+                        requestId, signedDataId);
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+            }
+        } else {
+            log.warn("Webhook HMAC verification DESHABILITADA (dev mode). dataId={}", externalId);
         }
 
         if (externalId == null || externalId.isBlank()) {
             log.warn("Webhook MercadoPago: data.id ausente.");
             return ResponseEntity.badRequest().build();
+        }
+
+        String topic = request.getParameter("topic");
+        String type = request.getParameter("type");
+        if ("merchant_order".equals(topic)) {
+            log.info("Webhook merchant_order ignorado. id={}, type={}", externalId, type);
+            return ResponseEntity.ok().build();
         }
 
         try {

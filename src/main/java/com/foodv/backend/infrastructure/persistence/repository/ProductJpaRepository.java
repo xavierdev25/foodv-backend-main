@@ -65,4 +65,14 @@ public interface ProductJpaRepository extends JpaRepository<ProductEntity, Long>
           AND (:cantidad <= 0 OR p.stock >= :cantidad)
     """)
     int decrementStock(@Param("id") Long id, @Param("cantidad") int cantidad);
+
+    @Modifying
+    @Query("""
+    UPDATE ProductEntity p
+    SET p.stock = p.stock + :cantidad,
+        p.disponible = CASE WHEN (p.stock + :cantidad) > 0 THEN true ELSE false END
+    WHERE p.id = :id
+      AND p.deletedAt IS NULL
+""")
+    int incrementStock(@Param("id") Long id, @Param("cantidad") int cantidad);
 }

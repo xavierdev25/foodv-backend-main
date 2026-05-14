@@ -9,28 +9,16 @@ import java.util.List;
 import java.util.Optional;
 
 public interface OrderRepositoryPort {
-
     Order save(Order order);
-
     Optional<Order> findById(Long id);
-
     Optional<Order> findByIdWithItems(Long id);
-
     List<Order> findByUserId(Long userId);
-
     List<Order> findByStoreId(Long storeId);
-
     List<Order> findByStatus(OrderStatus status);
-
     List<Order> findAll();
-
     PagedResult<Order> findAllPaginated(PageQuery query);
-
     PagedResult<Order> findByUserIdPaginated(Long userId, PageQuery query);
-
     PagedResult<Order> findByStoreIdPaginated(Long storeId, PageQuery query);
-
     PagedResult<Order> findByStatusPaginated(OrderStatus status, PageQuery query);
-
     List<Order> findByUserIdAndStatus(Long userId, OrderStatus status);
 }

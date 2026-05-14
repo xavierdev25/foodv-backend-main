@@ -47,6 +47,7 @@ services:
   redis:
     image: redis:7-alpine
     container_name: foodv-redis
+    restart: unless-stopped
     ports:
       - "6380:6379"
     networks:
@@ -64,6 +65,8 @@ services:
       dockerfile: Dockerfile
     container_name: foodv-ai-service
     restart: unless-stopped
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     environment:
       OLLAMA_HOST: ${OLLAMA_HOST:-http://host.docker.internal:11434}
       AI_SERVICE_PORT: 8001

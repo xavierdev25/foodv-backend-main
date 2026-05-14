@@ -47,4 +47,10 @@ public class StoreEntity {
 
     @Column(name = "deleted_at")
     private LocalDateTime deletedAt;
+
+    @Column(name = "horario_apertura")
+    private java.time.LocalTime horarioApertura;
+
+    @Column(name = "horario_cierre")
+    private java.time.LocalTime horarioCierre;
 }

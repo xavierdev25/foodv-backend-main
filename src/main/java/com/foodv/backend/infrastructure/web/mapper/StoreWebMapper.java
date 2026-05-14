@@ -7,10 +7,19 @@ import com.foodv.backend.infrastructure.web.dto.store.CreateStoreRequest;
 import com.foodv.backend.infrastructure.web.dto.store.StoreResponse;
 import com.foodv.backend.infrastructure.web.dto.store.UpdateStoreRequest;
 import org.mapstruct.Mapper;
+import org.mapstruct.Mapping;
+import org.mapstruct.Named;
+
+import java.time.LocalTime;
+import java.time.format.DateTimeFormatter;
 
 @Mapper(componentModel = "spring")
 public interface StoreWebMapper {
 
+    DateTimeFormatter STORE_SCHEDULE_FORMATTER = DateTimeFormatter.ofPattern("HH:mm");
+
+    @Mapping(target = "horarioApertura", source = "horarioApertura", qualifiedByName = "formatSchedule")
+    @Mapping(target = "horarioCierre", source = "horarioCierre", qualifiedByName = "formatSchedule")
     StoreResponse toResponse(Store store);
 
     UpdateStoreUseCase.UpdateStoreCommand toCommand(UpdateStoreRequest request);
@@ -22,5 +31,10 @@ public interface StoreWebMapper {
                 request.telefono(),
                 ownerId
         );
+    }
+
+    @Named("formatSchedule")
+    default String formatSchedule(LocalTime schedule) {
+        return schedule == null ? null : schedule.format(STORE_SCHEDULE_FORMATTER);
     }
 }

@@ -9,7 +9,11 @@ import org.mapstruct.Mapping;
 public interface StoreEntityMapper {
 
     @Mapping(target = "deletedAt", ignore = true)
+    @Mapping(target = "horarioApertura", source = "horarioApertura")
+    @Mapping(target = "horarioCierre", source = "horarioCierre")
     StoreEntity toEntity(Store store);
 
+    @Mapping(target = "horarioApertura", source = "horarioApertura")
+    @Mapping(target = "horarioCierre", source = "horarioCierre")
     Store toDomain(StoreEntity entity);
 }

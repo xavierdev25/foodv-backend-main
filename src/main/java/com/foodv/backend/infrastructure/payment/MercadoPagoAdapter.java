@@ -22,6 +22,20 @@ public class MercadoPagoAdapter implements PaymentGatewayPort {
     private final MercadoPagoConfiguration mercadoPagoConfig;
 
     @Override
+    public String getExternalReference(String paymentId) {
+        try {
+            com.mercadopago.client.payment.PaymentClient paymentClient =
+                    new com.mercadopago.client.payment.PaymentClient();
+            com.mercadopago.resources.payment.Payment payment =
+                    paymentClient.get(Long.parseLong(paymentId));
+            return payment.getExternalReference();
+        } catch (Exception e) {
+            log.warn("No se pudo obtener external_reference para paymentId={}: {}", paymentId, e.getMessage());
+            return null;
+        }
+    }
+
+    @Override
     public PaymentResponse createPayment(PaymentRequest request) {
         try {
             PreferenceClient preferenceClient = new PreferenceClient();

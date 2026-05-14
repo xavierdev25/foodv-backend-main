@@ -10,6 +10,7 @@ import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.time.Instant;
 import java.util.HashMap;
+import java.util.Locale;
 import java.util.Map;
 
 /**
@@ -24,13 +25,18 @@ import java.util.Map;
 @Component
 public class MercadoPagoSignatureVerifier {
 
-    private static final long MAX_TIMESTAMP_SKEW_MILLIS = 5 * 60 * 1000L;
-
     @Value("${MERCADOPAGO_WEBHOOK_SECRET:}")
     private String webhookSecret;
 
+    @Value("${MERCADOPAGO_WEBHOOK_VERIFY_SIGNATURE:true}")
+    private boolean verifySignature;
+
     public boolean isConfigured() {
         return webhookSecret != null && !webhookSecret.isBlank();
+    }
+
+    public boolean shouldVerify() {
+        return verifySignature;
     }
 
     public boolean verify(String xSignatureHeader, String xRequestId, String dataId) {
@@ -38,7 +44,8 @@ public class MercadoPagoSignatureVerifier {
             log.error("MercadoPago webhook secret no configurado. Rechazando webhook.");
             return false;
         }
-        if (xSignatureHeader == null || xSignatureHeader.isBlank() || dataId == null) {
+
+        if (xSignatureHeader == null || xSignatureHeader.isBlank()) {
             return false;
         }
 
@@ -51,23 +58,45 @@ public class MercadoPagoSignatureVerifier {
             return false;
         }
 
-        long timestampMillis;
+        long tsSeconds;
         try {
-            timestampMillis = Long.parseLong(ts);
+            long tsParsed = Long.parseLong(ts);
+            tsSeconds = tsParsed > 9_999_999_999L ? tsParsed / 1000L : tsParsed;
         } catch (NumberFormatException e) {
             log.warn("X-Signature ts no numérico");
             return false;
         }
-        long now = Instant.now().toEpochMilli();
-        if (Math.abs(now - timestampMillis) > MAX_TIMESTAMP_SKEW_MILLIS) {
-            log.warn("X-Signature ts fuera de tolerancia ({} vs {})", timestampMillis, now);
+        long nowSeconds = Instant.now().getEpochSecond();
+        if (Math.abs(nowSeconds - tsSeconds) > 300L) {
+            log.warn("X-Signature ts fuera de tolerancia ({} vs {})", tsSeconds, nowSeconds);
             return false;
         }
 
-        String message = "id:" + dataId + ";request-id:" + (xRequestId == null ? "" : xRequestId) + ";ts:" + ts + ";";
+        String message = buildManifest(dataId, xRequestId, ts);
         String computed = hmacSha256Hex(webhookSecret, message);
-
         return constantTimeEquals(computed, v1);
+    }
+
+    private String buildManifest(String dataId, String xRequestId, String ts) {
+        StringBuilder manifest = new StringBuilder();
+
+        if (dataId != null && !dataId.isBlank()) {
+            manifest.append("id:")
+                    .append(dataId.trim().toLowerCase(Locale.ROOT))
+                    .append(";");
+        }
+
+        if (xRequestId != null && !xRequestId.isBlank()) {
+            manifest.append("request-id:")
+                    .append(xRequestId.trim())
+                    .append(";");
+        }
+
+        manifest.append("ts:")
+                .append(ts.trim())
+                .append(";");
+
+        return manifest.toString();
     }
 
     private Map<String, String> parseSignatureHeader(String header) {

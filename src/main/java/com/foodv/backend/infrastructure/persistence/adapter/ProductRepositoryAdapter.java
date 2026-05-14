@@ -99,4 +99,9 @@ public class ProductRepositoryAdapter implements ProductRepositoryPort {
     public int decrementStock(Long productId, int cantidad) {
         return jpaRepository.decrementStock(productId, cantidad);
     }
+
+    @Override
+    public int incrementStock(Long productId, int cantidad) {
+        return jpaRepository.incrementStock(productId, cantidad);
+    }
 }

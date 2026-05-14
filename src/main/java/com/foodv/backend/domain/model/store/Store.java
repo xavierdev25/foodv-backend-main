@@ -6,6 +6,7 @@ import lombok.EqualsAndHashCode;
 import lombok.Getter;
 
 import java.time.LocalDateTime;
+import java.time.LocalTime;
 
 @Getter
 @Builder
@@ -24,4 +25,6 @@ public class Store {
     private boolean activo;
     private LocalDateTime creadoEn;
     private LocalDateTime actualizadoEn;
+    private LocalTime horarioApertura;
+    private LocalTime horarioCierre;
 }

@@ -73,4 +73,15 @@ public class StoreRepositoryAdapter implements StoreRepositoryPort {
             jpaRepository.save(entity);
         });
     }
+
+    @Override
+    public PagedResult<Store> findByNombreContaining(String nombre, PageQuery query) {
+        return PagingMapper.toDomain(
+                jpaRepository.findByNombreContainingIgnoreCaseAndActivoTrueAndDeletedAtIsNull(
+                        nombre == null ? "" : nombre,
+                        PagingMapper.toPageable(query)
+                ),
+                mapper::toDomain
+        );
+    }
 }

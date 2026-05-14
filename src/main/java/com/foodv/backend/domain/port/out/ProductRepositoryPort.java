@@ -36,4 +36,5 @@ public interface ProductRepositoryPort {
                                 Boolean disponible, PageQuery query);
 
     int decrementStock(Long productId, int cantidad);
+    int incrementStock(Long productId, int cantidad);
 }

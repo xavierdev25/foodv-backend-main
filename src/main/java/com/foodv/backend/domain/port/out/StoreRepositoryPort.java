@@ -26,4 +26,6 @@ public interface StoreRepositoryPort {
     PagedResult<Store> findAllActivasPaginated(PageQuery query);
 
     void deleteById(Long id);
+
+    PagedResult<Store> findByNombreContaining(String nombre, PageQuery query);
 }
