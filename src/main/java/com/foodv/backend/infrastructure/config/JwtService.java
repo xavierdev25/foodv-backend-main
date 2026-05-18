@@ -17,8 +17,12 @@ public class JwtService {
         this.tokenServicePort = tokenServicePort;
     }
 
-    public String generateAccessToken(String email, UserRole role) {
-        return tokenServicePort.generateAccessToken(email, role);
+    public String generateAccessToken(Long userId, String email, UserRole role) {
+        return tokenServicePort.generateAccessToken(userId, email, role);
+    }
+
+    public String generateAccessToken(Long userId, String email, UserRole role, String nombres) {
+        return tokenServicePort.generateAccessToken(userId, email, role, nombres);
     }
 
     public String generateRefreshToken(String email) {
@@ -35,5 +39,13 @@ public class JwtService {
 
     public String extractRole(String token) {
         return tokenServicePort.extractRole(token);
+    }
+
+    public String extractNombres(String token) {
+        return tokenServicePort.extractNombres(token);
+    }
+
+    public Long extractUserId(String token) {
+        return tokenServicePort.extractUserId(token);
     }
 }

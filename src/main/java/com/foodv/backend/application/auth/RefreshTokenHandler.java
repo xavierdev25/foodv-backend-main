@@ -56,7 +56,12 @@ public class RefreshTokenHandler implements RefreshTokenUseCase {
             throw new IllegalArgumentException("Usuario inactivo");
         }
 
-        String newAccessToken = tokenServicePort.generateAccessToken(user.getEmail(), user.getRole());
+        String newAccessToken = tokenServicePort.generateAccessToken(
+                user.getId(),
+                user.getEmail(),
+                user.getRole(),
+                user.getNombres()
+        );
         String newRefreshToken = tokenServicePort.generateRefreshToken(user.getEmail());
 
         refreshTokenStorePort.save(

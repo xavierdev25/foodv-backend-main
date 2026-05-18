@@ -1,5 +1,6 @@
 package com.foodv.backend.domain.port.in.user;
 
+import com.foodv.backend.domain.model.user.BudgetRange;
 import com.foodv.backend.domain.model.user.User;
 import com.foodv.backend.domain.model.user.UserRole;
 
@@ -18,7 +19,7 @@ public interface CreateUserUseCase {
             UserRole role,
             List<String> preferences,
             List<String> restrictions,
-            String budgetRange,
+            BudgetRange budgetRange,
             List<String> cuisineTypes
     ) {}
 

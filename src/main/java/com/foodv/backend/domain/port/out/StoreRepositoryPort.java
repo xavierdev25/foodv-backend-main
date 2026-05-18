@@ -17,6 +17,8 @@ public interface StoreRepositoryPort {
 
     boolean existsByOwnerId(Long ownerId);
 
+    List<Store> findAllById(List<Long> ids);
+
     List<Store> findAll();
 
     List<Store> findAllActivas();

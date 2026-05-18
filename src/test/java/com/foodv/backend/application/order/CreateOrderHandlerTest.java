@@ -9,7 +9,7 @@ import com.foodv.backend.domain.model.user.User;
 import com.foodv.backend.domain.model.user.UserRole;
 import com.foodv.backend.domain.port.in.order.CreateOrderUseCase;
 import com.foodv.backend.domain.port.out.*;
-import jakarta.persistence.EntityNotFoundException;
+import com.foodv.backend.domain.exception.ResourceNotFoundException;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -107,7 +107,7 @@ class CreateOrderHandlerTest {
     void crear_orden_falla_usuario_no_existe() {
         when(userRepositoryPort.findById(99L)).thenReturn(Optional.empty());
 
-        assertThrows(EntityNotFoundException.class, () ->
+        assertThrows(ResourceNotFoundException.class, () ->
                 createOrderHandler.execute(buildCommand(
                         99L, 1L, 1L,
                         List.of(new CreateOrderUseCase.OrderItemCommand(1L, 1)),

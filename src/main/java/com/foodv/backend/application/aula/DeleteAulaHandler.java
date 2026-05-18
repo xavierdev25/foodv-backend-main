@@ -2,7 +2,7 @@ package com.foodv.backend.application.aula;
 
 import com.foodv.backend.domain.port.in.aula.DeleteAulaUseCase;
 import com.foodv.backend.domain.port.out.AulaRepositoryPort;
-import jakarta.persistence.EntityNotFoundException;
+import com.foodv.backend.domain.exception.ResourceNotFoundException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
@@ -15,7 +15,7 @@ public class DeleteAulaHandler implements DeleteAulaUseCase {
     @Override
     public void execute(Long id) {
         aulaRepositoryPort.findById(id)
-                .orElseThrow(() -> new EntityNotFoundException("Aula no encontrada"));
+                .orElseThrow(() -> new ResourceNotFoundException("Aula no encontrada"));
 
         aulaRepositoryPort.deleteById(id);
     }

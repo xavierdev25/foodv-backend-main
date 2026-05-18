@@ -1,5 +1,6 @@
 package com.foodv.backend.application.order;
 
+import com.foodv.backend.domain.exception.ResourceNotFoundException;
 import com.foodv.backend.domain.model.order.Order;
 import com.foodv.backend.domain.model.order.OrderItem;
 import com.foodv.backend.domain.model.order.OrderStatus;
@@ -13,7 +14,6 @@ import com.foodv.backend.domain.port.out.ProductRepositoryPort;
 import com.foodv.backend.domain.port.out.SecureRandomPort;
 import com.foodv.backend.domain.port.out.StoreRepositoryPort;
 import com.foodv.backend.domain.port.out.UserRepositoryPort;
-import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -44,19 +44,32 @@ public class CreateOrderHandler implements CreateOrderUseCase {
     @Override
     @Transactional
     public Order execute(CreateOrderCommand command) {
+        Store store = validateParticipants(command);
+        List<OrderItem> orderItems = buildAndValidateItems(command, store);
+        Money totals = calculateTotals(orderItems, command.propina());
+        Order savedOrder = orderRepositoryPort.save(buildOrder(command, orderItems, totals));
+        metricsPort.recordOrderCreated();
+        return savedOrder;
+    }
+
+    private Store validateParticipants(CreateOrderCommand command) {
         userRepositoryPort.findById(command.userId())
-                .orElseThrow(() -> new EntityNotFoundException("Usuario no encontrado"));
+                .orElseThrow(() -> new ResourceNotFoundException("Usuario no encontrado"));
 
         Store store = storeRepositoryPort.findById(command.storeId())
-                .orElseThrow(() -> new EntityNotFoundException("Tienda no encontrada"));
+                .orElseThrow(() -> new ResourceNotFoundException("Tienda no encontrada"));
 
         if (!store.isActivo()) {
             throw new IllegalArgumentException("La tienda no está activa");
         }
 
         aulaRepositoryPort.findById(command.aulaId())
-                .orElseThrow(() -> new EntityNotFoundException("Aula no encontrada"));
+                .orElseThrow(() -> new ResourceNotFoundException("Aula no encontrada"));
 
+        return store;
+    }
+
+    private List<OrderItem> buildAndValidateItems(CreateOrderCommand command, Store store) {
         if (command.items() == null || command.items().isEmpty()) {
             throw new IllegalArgumentException("La orden debe tener al menos un item");
         }
@@ -75,7 +88,7 @@ public class CreateOrderHandler implements CreateOrderUseCase {
             int cantidad = entry.getValue();
 
             Product product = productRepositoryPort.findById(productId)
-                    .orElseThrow(() -> new EntityNotFoundException("Producto no encontrado: " + productId));
+                    .orElseThrow(() -> new ResourceNotFoundException("Producto no encontrado: " + productId));
 
             if (!product.getStoreId().equals(store.getId())) {
                 throw new IllegalArgumentException(
@@ -104,12 +117,15 @@ public class CreateOrderHandler implements CreateOrderUseCase {
                     .subtotal(subtotal)
                     .build());
         }
+        return orderItems;
+    }
 
+    private Money calculateTotals(List<OrderItem> orderItems, BigDecimal requestedTip) {
         BigDecimal totalProductos = orderItems.stream()
                 .map(OrderItem::getSubtotal)
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
 
-        BigDecimal propina = command.propina() == null ? BigDecimal.ZERO : command.propina();
+        BigDecimal propina = requestedTip == null ? BigDecimal.ZERO : requestedTip;
         if (propina.signum() < 0) {
             throw new IllegalArgumentException("La propina no puede ser negativa");
         }
@@ -119,25 +135,31 @@ public class CreateOrderHandler implements CreateOrderUseCase {
         if (propina.compareTo(maxPropina) > 0) {
             throw new IllegalArgumentException("La propina excede el máximo permitido");
         }
+        return new Money(totalProductos, propina, TARIFA_SERVICIO, COMISION_FOODV);
+    }
 
-        Order order = Order.builder()
+    private Order buildOrder(CreateOrderCommand command, List<OrderItem> orderItems, Money totals) {
+        return Order.builder()
                 .userId(command.userId())
                 .storeId(command.storeId())
                 .aulaId(command.aulaId())
                 .items(orderItems)
-                .total(totalProductos)
-                .propina(propina)
-                .tarifaServicio(TARIFA_SERVICIO)
-                .comisionFoodv(COMISION_FOODV)
+                .total(totals.totalProductos())
+                .propina(totals.propina())
+                .tarifaServicio(totals.tarifaServicio())
+                .comisionFoodv(totals.comisionFoodv())
                 .codigoConfirmacion(secureRandomPort.generateConfirmationCode(4))
                 .status(OrderStatus.PENDIENTE)
                 .notas(command.notas())
                 .creadoEn(LocalDateTime.now())
                 .actualizadoEn(LocalDateTime.now())
                 .build();
-
-        Order savedOrder = orderRepositoryPort.save(order);
-        metricsPort.recordOrderCreated();
-        return savedOrder;
     }
+
+    private record Money(
+            BigDecimal totalProductos,
+            BigDecimal propina,
+            BigDecimal tarifaServicio,
+            BigDecimal comisionFoodv
+    ) {}
 }

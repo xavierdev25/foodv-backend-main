@@ -97,7 +97,7 @@ public class UserController {
     @Operation(summary = "Obtener usuario (sólo el propio o ADMIN)")
     @GetMapping("/{id}")
     public ResponseEntity<UserResponse> findById(@PathVariable Long id) {
-        ownershipService.requireSelfOrAdmin(currentUser.currentUser(), id);
+        ownershipService.requireSelfOrAdmin(currentUser.currentUserSummary(), id);
         return ResponseEntity.ok(mapper.toResponse(findUserUseCase.findById(id)));
     }
 
@@ -105,14 +105,14 @@ public class UserController {
     @PutMapping("/{id}")
     public ResponseEntity<UserResponse> update(@PathVariable Long id,
                                                @Valid @RequestBody UpdateUserRequest request) {
-        ownershipService.requireSelfOrAdmin(currentUser.currentUser(), id);
+        ownershipService.requireSelfOrAdmin(currentUser.currentUserSummary(), id);
         return ResponseEntity.ok(mapper.toResponse(updateUserUseCase.execute(id, mapper.toCommand(request))));
     }
 
     @Operation(summary = "Eliminar usuario (sólo el propio o ADMIN)")
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> delete(@PathVariable Long id) {
-        ownershipService.requireSelfOrAdmin(currentUser.currentUser(), id);
+        ownershipService.requireSelfOrAdmin(currentUser.currentUserSummary(), id);
         deleteUserUseCase.execute(id);
         return ResponseEntity.noContent().build();
     }
@@ -120,13 +120,13 @@ public class UserController {
     @Operation(summary = "Mi perfil")
     @GetMapping("/me")
     public ResponseEntity<UserResponse> getMe() {
-        return ResponseEntity.ok(mapper.toResponse(currentUser.currentUser()));
+        return ResponseEntity.ok(mapper.toResponse(currentUser.currentUserSummary()));
     }
 
     @Operation(summary = "Actualizar mi perfil")
     @PutMapping("/me")
     public ResponseEntity<UserResponse> updateMe(@Valid @RequestBody UpdateUserRequest request) {
-        Long id = currentUser.currentUser().getId();
+        Long id = currentUser.currentUserId();
         return ResponseEntity.ok(mapper.toResponse(updateUserUseCase.execute(id, mapper.toCommand(request))));
     }
 
@@ -141,7 +141,7 @@ public class UserController {
     @GetMapping("/deleted")
     @Operation(summary = "Listar usuarios eliminados (sólo ADMIN)")
     public ResponseEntity<List<UserResponse>> findDeleted() {
-        if (currentUser.currentUser().getRole() != UserRole.ADMIN) {
+        if (currentUser.currentRole() != UserRole.ADMIN) {
             throw new AccessDeniedException("Sólo ADMIN puede ver usuarios eliminados");
         }
         return ResponseEntity.ok(
@@ -155,7 +155,7 @@ public class UserController {
     @PostMapping("/{id}/restore")
     @Operation(summary = "Restaurar usuario eliminado (sólo ADMIN)")
     public ResponseEntity<Map<String, String>> restore(@PathVariable Long id) {
-        if (currentUser.currentUser().getRole() != UserRole.ADMIN) {
+        if (currentUser.currentRole() != UserRole.ADMIN) {
             throw new AccessDeniedException("Sólo ADMIN puede restaurar usuarios");
         }
         userJpaRepository.findById(id).ifPresent(user -> {

@@ -41,6 +41,13 @@ public class StoreRepositoryAdapter implements StoreRepositoryPort {
     }
 
     @Override
+    public List<Store> findAllById(List<Long> ids) {
+        return jpaRepository.findByIdInAndDeletedAtIsNull(ids).stream()
+                .map(mapper::toDomain)
+                .toList();
+    }
+
+    @Override
     public List<Store> findAll() {
         return jpaRepository.findAllByDeletedAtIsNull().stream().map(mapper::toDomain).toList();
     }

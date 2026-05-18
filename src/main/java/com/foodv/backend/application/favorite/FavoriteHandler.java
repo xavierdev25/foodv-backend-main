@@ -4,11 +4,12 @@ import com.foodv.backend.domain.model.favorite.FavoriteProduct;
 import com.foodv.backend.domain.model.favorite.FavoriteStore;
 import com.foodv.backend.domain.model.product.Product;
 import com.foodv.backend.domain.model.store.Store;
-import com.foodv.backend.domain.port.in.favorite.FavoriteUseCase;
+import com.foodv.backend.domain.port.in.favorite.FavoriteProductUseCase;
+import com.foodv.backend.domain.port.in.favorite.FavoriteStoreUseCase;
 import com.foodv.backend.domain.port.out.FavoriteRepositoryPort;
 import com.foodv.backend.domain.port.out.ProductRepositoryPort;
 import com.foodv.backend.domain.port.out.StoreRepositoryPort;
-import jakarta.persistence.EntityNotFoundException;
+import com.foodv.backend.domain.exception.ResourceNotFoundException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -18,7 +19,7 @@ import java.util.List;
 
 @Service
 @RequiredArgsConstructor
-public class FavoriteHandler implements FavoriteUseCase {
+public class FavoriteHandler implements FavoriteProductUseCase, FavoriteStoreUseCase {
 
     private final FavoriteRepositoryPort favoriteRepositoryPort;
     private final ProductRepositoryPort productRepositoryPort;
@@ -28,7 +29,7 @@ public class FavoriteHandler implements FavoriteUseCase {
     @Transactional
     public FavoriteProduct addProductFavorite(Long userId, Long productId) {
         productRepositoryPort.findById(productId)
-                .orElseThrow(() -> new EntityNotFoundException("Producto no encontrado"));
+                .orElseThrow(() -> new ResourceNotFoundException("Producto no encontrado"));
 
         return favoriteRepositoryPort.findProductFavorite(userId, productId)
                 .orElseGet(() -> favoriteRepositoryPort.saveProductFavorite(FavoriteProduct.builder()
@@ -47,11 +48,10 @@ public class FavoriteHandler implements FavoriteUseCase {
     @Override
     @Transactional(readOnly = true)
     public List<Product> findFavoriteProducts(Long userId) {
-        return favoriteRepositoryPort.findProductFavoritesByUserId(userId).stream()
+        List<Long> productIds = favoriteRepositoryPort.findProductFavoritesByUserId(userId).stream()
                 .map(FavoriteProduct::getProductId)
-                .map(productId -> productRepositoryPort.findById(productId)
-                        .orElseThrow(() -> new EntityNotFoundException("Producto no encontrado")))
                 .toList();
+        return productRepositoryPort.findAllById(productIds);
     }
 
     @Override
@@ -64,7 +64,7 @@ public class FavoriteHandler implements FavoriteUseCase {
     @Transactional
     public FavoriteStore addStoreFavorite(Long userId, Long storeId) {
         storeRepositoryPort.findById(storeId)
-                .orElseThrow(() -> new EntityNotFoundException("Tienda no encontrada"));
+                .orElseThrow(() -> new ResourceNotFoundException("Tienda no encontrada"));
 
         return favoriteRepositoryPort.findStoreFavorite(userId, storeId)
                 .orElseGet(() -> favoriteRepositoryPort.saveStoreFavorite(FavoriteStore.builder()
@@ -83,11 +83,10 @@ public class FavoriteHandler implements FavoriteUseCase {
     @Override
     @Transactional(readOnly = true)
     public List<Store> findFavoriteStores(Long userId) {
-        return favoriteRepositoryPort.findStoreFavoritesByUserId(userId).stream()
+        List<Long> storeIds = favoriteRepositoryPort.findStoreFavoritesByUserId(userId).stream()
                 .map(FavoriteStore::getStoreId)
-                .map(storeId -> storeRepositoryPort.findById(storeId)
-                        .orElseThrow(() -> new EntityNotFoundException("Tienda no encontrada")))
                 .toList();
+        return storeRepositoryPort.findAllById(storeIds);
     }
 
     @Override

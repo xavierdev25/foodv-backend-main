@@ -3,7 +3,7 @@ spring:
     url: jdbc:postgresql://localhost:5432/foodv_db
     driver-class-name: org.postgresql.Driver
     username: foodv_user
-    password: foodv_secret
+    password: ${DB_PASSWORD:test_db_password_placeholder}
   jpa:
     show-sql: false
     hibernate:
@@ -25,7 +25,7 @@ logging:
     org.flywaydb: INFO
 
 jwt:
-  secret: test-secret-key-de-minimo-32-caracteres-para-tests
+  secret: ${JWT_SECRET:test_jwt_secret_placeholder_minimum_32_bytes_long_value}
   expiration: 86400000
   refresh-expiration: 604800000
   issuer: foodv-backend

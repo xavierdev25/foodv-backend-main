@@ -15,6 +15,8 @@ public interface ProductRepositoryPort {
 
     Optional<Product> findById(Long id);
 
+    List<Product> findAllById(List<Long> ids);
+
     List<Product> findByStoreId(Long storeId);
 
     List<Product> findByStoreIdAndActivoTrue(Long storeId);

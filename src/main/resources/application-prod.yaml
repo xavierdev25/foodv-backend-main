@@ -2,11 +2,19 @@
 # FoodV Backend — Perfil PROD
 # =============================================
 spring:
+  flyway:
+    validate-on-migrate: true
   jpa:
     show-sql: false
   docker:
     compose:
       lifecycle-management: none
+
+springdoc:
+  swagger-ui:
+    enabled: false
+  api-docs:
+    enabled: false
 
 logging:
   level:

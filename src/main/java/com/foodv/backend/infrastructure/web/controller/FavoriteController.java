@@ -1,6 +1,7 @@
 package com.foodv.backend.infrastructure.web.controller;
 
-import com.foodv.backend.domain.port.in.favorite.FavoriteUseCase;
+import com.foodv.backend.domain.port.in.favorite.FavoriteProductUseCase;
+import com.foodv.backend.domain.port.in.favorite.FavoriteStoreUseCase;
 import com.foodv.backend.infrastructure.security.AuthenticatedUserResolver;
 import com.foodv.backend.infrastructure.web.dto.favorite.FavoriteCheckResponse;
 import com.foodv.backend.infrastructure.web.dto.favorite.FavoriteProductResponse;
@@ -25,7 +26,8 @@ import java.util.List;
 @RequiredArgsConstructor
 public class FavoriteController {
 
-    private final FavoriteUseCase favoriteUseCase;
+    private final FavoriteProductUseCase favoriteProductUseCase;
+    private final FavoriteStoreUseCase favoriteStoreUseCase;
     private final AuthenticatedUserResolver currentUser;
     private final FavoriteWebMapper favoriteWebMapper;
     private final ProductWebMapper productWebMapper;
@@ -36,20 +38,20 @@ public class FavoriteController {
     public ResponseEntity<FavoriteProductResponse> addProductFavorite(@PathVariable Long productId) {
         Long userId = currentUser.currentUserId();
         return ResponseEntity.status(HttpStatus.CREATED)
-                .body(favoriteWebMapper.toResponse(favoriteUseCase.addProductFavorite(userId, productId)));
+                .body(favoriteWebMapper.toResponse(favoriteProductUseCase.addProductFavorite(userId, productId)));
     }
 
     @Operation(summary = "Quitar producto favorito")
     @DeleteMapping("/products/{productId}")
     public ResponseEntity<Void> removeProductFavorite(@PathVariable Long productId) {
-        favoriteUseCase.removeProductFavorite(currentUser.currentUserId(), productId);
+        favoriteProductUseCase.removeProductFavorite(currentUser.currentUserId(), productId);
         return ResponseEntity.noContent().build();
     }
 
     @Operation(summary = "Listar productos favoritos")
     @GetMapping("/products")
     public ResponseEntity<List<ProductResponse>> findFavoriteProducts() {
-        List<ProductResponse> favorites = favoriteUseCase.findFavoriteProducts(currentUser.currentUserId()).stream()
+        List<ProductResponse> favorites = favoriteProductUseCase.findFavoriteProducts(currentUser.currentUserId()).stream()
                 .map(productWebMapper::toResponse)
                 .toList();
         return ResponseEntity.ok(favorites);
@@ -59,7 +61,7 @@ public class FavoriteController {
     @GetMapping("/products/{productId}/check")
     public ResponseEntity<FavoriteCheckResponse> checkProductFavorite(@PathVariable Long productId) {
         return ResponseEntity.ok(new FavoriteCheckResponse(
-                favoriteUseCase.isProductFavorite(currentUser.currentUserId(), productId)));
+                favoriteProductUseCase.isProductFavorite(currentUser.currentUserId(), productId)));
     }
 
     @Operation(summary = "Agregar tienda favorita")
@@ -67,20 +69,20 @@ public class FavoriteController {
     public ResponseEntity<FavoriteStoreResponse> addStoreFavorite(@PathVariable Long storeId) {
         Long userId = currentUser.currentUserId();
         return ResponseEntity.status(HttpStatus.CREATED)
-                .body(favoriteWebMapper.toResponse(favoriteUseCase.addStoreFavorite(userId, storeId)));
+                .body(favoriteWebMapper.toResponse(favoriteStoreUseCase.addStoreFavorite(userId, storeId)));
     }
 
     @Operation(summary = "Quitar tienda favorita")
     @DeleteMapping("/stores/{storeId}")
     public ResponseEntity<Void> removeStoreFavorite(@PathVariable Long storeId) {
-        favoriteUseCase.removeStoreFavorite(currentUser.currentUserId(), storeId);
+        favoriteStoreUseCase.removeStoreFavorite(currentUser.currentUserId(), storeId);
         return ResponseEntity.noContent().build();
     }
 
     @Operation(summary = "Listar tiendas favoritas")
     @GetMapping("/stores")
     public ResponseEntity<List<StoreResponse>> findFavoriteStores() {
-        List<StoreResponse> favorites = favoriteUseCase.findFavoriteStores(currentUser.currentUserId()).stream()
+        List<StoreResponse> favorites = favoriteStoreUseCase.findFavoriteStores(currentUser.currentUserId()).stream()
                 .map(storeWebMapper::toResponse)
                 .toList();
         return ResponseEntity.ok(favorites);
@@ -90,6 +92,6 @@ public class FavoriteController {
     @GetMapping("/stores/{storeId}/check")
     public ResponseEntity<FavoriteCheckResponse> checkStoreFavorite(@PathVariable Long storeId) {
         return ResponseEntity.ok(new FavoriteCheckResponse(
-                favoriteUseCase.isStoreFavorite(currentUser.currentUserId(), storeId)));
+                favoriteStoreUseCase.isStoreFavorite(currentUser.currentUserId(), storeId)));
     }
 }

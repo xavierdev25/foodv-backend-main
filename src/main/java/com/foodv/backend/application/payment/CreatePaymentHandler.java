@@ -1,36 +1,41 @@
 package com.foodv.backend.application.payment;
 
+import com.foodv.backend.domain.exception.AuthorizationException;
+import com.foodv.backend.domain.exception.ResourceNotFoundException;
 import com.foodv.backend.domain.model.order.Order;
 import com.foodv.backend.domain.model.payment.Payment;
 import com.foodv.backend.domain.model.payment.PaymentStatus;
+import com.foodv.backend.domain.model.user.User;
+import com.foodv.backend.domain.model.user.UserRole;
 import com.foodv.backend.domain.port.in.payment.CreatePaymentUseCase;
 import com.foodv.backend.domain.port.out.OrderRepositoryPort;
 import com.foodv.backend.domain.port.out.PaymentGatewayPort;
 import com.foodv.backend.domain.port.out.PaymentRepositoryPort;
 import com.foodv.backend.domain.port.out.UserRepositoryPort;
-import com.foodv.backend.domain.model.user.User;
-import com.foodv.backend.domain.model.user.UserRole;
-import jakarta.persistence.EntityNotFoundException;
-import lombok.RequiredArgsConstructor;
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.security.access.AccessDeniedException;
-import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
-@Service
-@RequiredArgsConstructor
 public class CreatePaymentHandler implements CreatePaymentUseCase {
 
     private final PaymentRepositoryPort paymentRepositoryPort;
     private final PaymentGatewayPort paymentGatewayPort;
     private final OrderRepositoryPort orderRepositoryPort;
     private final UserRepositoryPort userRepositoryPort;
+    private final String notificationUrl;
 
-    @Value("${MERCADOPAGO_NOTIFICATION_URL:http://localhost:8080/api/payments/webhook}")
-    private String notificationUrl;
+    public CreatePaymentHandler(PaymentRepositoryPort paymentRepositoryPort,
+                                PaymentGatewayPort paymentGatewayPort,
+                                OrderRepositoryPort orderRepositoryPort,
+                                UserRepositoryPort userRepositoryPort,
+                                String notificationUrl) {
+        this.paymentRepositoryPort = paymentRepositoryPort;
+        this.paymentGatewayPort = paymentGatewayPort;
+        this.orderRepositoryPort = orderRepositoryPort;
+        this.userRepositoryPort = userRepositoryPort;
+        this.notificationUrl = notificationUrl;
+    }
 
     @Override
     @Transactional
@@ -40,13 +45,13 @@ public class CreatePaymentHandler implements CreatePaymentUseCase {
         }
 
         User requester = userRepositoryPort.findByEmail(command.requesterEmail())
-                .orElseThrow(() -> new AccessDeniedException("Usuario no encontrado"));
+                .orElseThrow(() -> new AuthorizationException("Usuario no encontrado"));
 
         Order order = orderRepositoryPort.findByIdWithItems(command.orderId())
-                .orElseThrow(() -> new EntityNotFoundException("Orden no encontrada"));
+                .orElseThrow(() -> new ResourceNotFoundException("Orden no encontrada"));
 
         if (requester.getRole() != UserRole.ADMIN && !requester.getId().equals(order.getUserId())) {
-            throw new AccessDeniedException("No puedes pagar una orden ajena");
+            throw new AuthorizationException("No puedes pagar una orden ajena");
         }
 
         if (paymentRepositoryPort.findByOrderId(command.orderId()).isPresent()) {

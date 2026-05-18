@@ -1,5 +1,6 @@
 package com.foodv.backend.infrastructure.persistence.entity;
 
+import com.foodv.backend.domain.model.user.BudgetRange;
 import com.foodv.backend.domain.model.user.UserRole;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -77,8 +78,9 @@ public class UserEntity {
     @Column(name = "restrictions", columnDefinition = "text[]")
     private String[] restrictions;
 
+    @Enumerated(EnumType.STRING)
     @Column(name = "budget_range", length = 20)
-    private String budgetRange;
+    private BudgetRange budgetRange;
 
     @JdbcTypeCode(SqlTypes.ARRAY)
     @Column(name = "cuisine_types", columnDefinition = "text[]")

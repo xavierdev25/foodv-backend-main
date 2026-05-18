@@ -53,7 +53,7 @@ public class ProductController {
     })
     @PostMapping
     public ResponseEntity<ProductResponse> create(@Valid @RequestBody CreateProductRequest request) {
-        User me = currentUser.currentUser();
+        User me = currentUser.currentUserSummary();
         Long storeId = me.getRole() == UserRole.ADMIN
                 ? ownershipService.resolveStoreIdForUser(me)
                 : ownershipService.resolveStoreIdForUser(me);
@@ -113,7 +113,7 @@ public class ProductController {
     @PutMapping("/{id}")
     public ResponseEntity<ProductResponse> update(@PathVariable Long id,
                                                   @Valid @RequestBody UpdateProductRequest request) {
-        ownershipService.requireProductOwnerOrAdmin(currentUser.currentUser(), id);
+        ownershipService.requireProductOwnerOrAdmin(currentUser.currentUserSummary(), id);
         Product product = updateProductUseCase.execute(id, mapper.toCommand(request));
         return ResponseEntity.ok(mapper.toResponse(product));
     }
@@ -121,7 +121,7 @@ public class ProductController {
     @Operation(summary = "Eliminar producto (sólo dueño o ADMIN)")
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> delete(@PathVariable Long id) {
-        ownershipService.requireProductOwnerOrAdmin(currentUser.currentUser(), id);
+        ownershipService.requireProductOwnerOrAdmin(currentUser.currentUserSummary(), id);
         deleteProductUseCase.execute(id);
         return ResponseEntity.noContent().build();
     }

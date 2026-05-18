@@ -63,12 +63,12 @@ public class GetRecommendationsHandler implements GetRecommendationsUseCase {
                     .map(Map.Entry::getKey)
                     .toList();
 
-            topProductIds.forEach(pid -> productRepositoryPort.findById(pid)
-                    .ifPresent(p -> {
-                        if (!preferences.contains(p.getNombre())) {
-                            preferences.add(p.getNombre());
-                        }
-                    }));
+            Map<Long, Product> productsById = productRepositoryPort.findAllById(topProductIds).stream()
+                    .collect(Collectors.toMap(Product::getId, product -> product));
+            topProductIds.stream()
+                    .map(productsById::get)
+                    .filter(product -> product != null && !preferences.contains(product.getNombre()))
+                    .forEach(product -> preferences.add(product.getNombre()));
         }
 
         // 5. Contexto temporal (mañana/mediodía/tarde)
@@ -77,7 +77,7 @@ public class GetRecommendationsHandler implements GetRecommendationsUseCase {
             preferences.add("desayuno");
         } else if (hour >= 11 && hour < 15) {
             preferences.add("almuerzo");
-            if (user.getBudgetRange() != null) preferences.add("presupuesto:" + user.getBudgetRange());
+            if (user.getBudgetRange() != null) preferences.add("presupuesto:" + user.getBudgetRange().name());
         } else if (hour >= 15 && hour < 20) {
             preferences.add("snack");
         }

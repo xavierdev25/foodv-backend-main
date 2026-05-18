@@ -45,7 +45,7 @@ public class ImageController {
             @PathVariable Long productId,
             @RequestParam("file") MultipartFile file
     ) throws IOException {
-        ownershipService.requireProductOwnerOrAdmin(currentUser.currentUser(), productId);
+        ownershipService.requireProductOwnerOrAdmin(currentUser.currentUserSummary(), productId);
         validateFile(file);
         String imageUrl = imageStoragePort.uploadImage(
                 file.getBytes(), sanitizeFilename(file.getOriginalFilename()), "foodv/products");
@@ -58,7 +58,7 @@ public class ImageController {
             @PathVariable Long storeId,
             @RequestParam("file") MultipartFile file
     ) throws IOException {
-        ownershipService.requireStoreOwnerOrAdmin(currentUser.currentUser(), storeId);
+        ownershipService.requireStoreOwnerOrAdmin(currentUser.currentUserSummary(), storeId);
         validateFile(file);
         String imageUrl = imageStoragePort.uploadImage(
                 file.getBytes(), sanitizeFilename(file.getOriginalFilename()), "foodv/stores");
@@ -68,7 +68,7 @@ public class ImageController {
     @Operation(summary = "Eliminar imagen por publicId (sólo ADMIN)")
     @DeleteMapping
     public ResponseEntity<Void> deleteImage(@RequestParam String publicId) {
-        if (currentUser.currentUser().getRole() != UserRole.ADMIN) {
+        if (currentUser.currentRole() != UserRole.ADMIN) {
             throw new AccessDeniedException("Sólo ADMIN puede eliminar imágenes directamente");
         }
         if (publicId == null || publicId.isBlank()) {

@@ -10,7 +10,7 @@ import com.foodv.backend.domain.port.out.NotificationPort;
 import com.foodv.backend.domain.port.out.OrderRepositoryPort;
 import com.foodv.backend.domain.port.out.ProductRepositoryPort;
 import com.foodv.backend.domain.port.out.notification.PushNotificationPort;
-import jakarta.persistence.EntityNotFoundException;
+import com.foodv.backend.domain.exception.ResourceNotFoundException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -31,7 +31,7 @@ public class CancelOrderHandler implements CancelOrderUseCase {
     @Transactional
     public Order execute(CancelOrderCommand command) {
         Order existing = orderRepositoryPort.findByIdWithItems(command.orderId())
-                .orElseThrow(() -> new EntityNotFoundException("Orden no encontrada"));
+                .orElseThrow(() -> new ResourceNotFoundException("Orden no encontrada"));
 
         if (!existing.getStatus().canTransitionTo(OrderStatus.CANCELADO)) {
             throw new IllegalArgumentException(

@@ -1,6 +1,8 @@
 package com.foodv.backend.infrastructure.web.controller;
 
-import jakarta.persistence.EntityNotFoundException;
+import com.foodv.backend.domain.exception.AuthorizationException;
+import com.foodv.backend.domain.exception.AuthenticationFailedException;
+import com.foodv.backend.domain.exception.ResourceNotFoundException;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
@@ -23,9 +25,21 @@ import java.util.Map;
 @RestControllerAdvice
 public class GlobalExceptionHandler {
 
-    @ExceptionHandler(EntityNotFoundException.class)
-    public ResponseEntity<Map<String, Object>> handleNotFound(EntityNotFoundException ex) {
+    @ExceptionHandler(ResourceNotFoundException.class)
+    public ResponseEntity<Map<String, Object>> handleResourceNotFound(ResourceNotFoundException ex) {
         return build(HttpStatus.NOT_FOUND, "No encontrado", safeMessage(ex, "Recurso no encontrado"));
+    }
+
+    @ExceptionHandler(AuthorizationException.class)
+    public ResponseEntity<Map<String, Object>> handleAuthorization(AuthorizationException ex) {
+        return build(HttpStatus.FORBIDDEN, "Acceso denegado",
+                safeMessage(ex, "No tienes permisos para realizar esta acción"));
+    }
+
+    @ExceptionHandler(AuthenticationFailedException.class)
+    public ResponseEntity<Map<String, String>> handleAuthenticationFailed(AuthenticationFailedException ex) {
+        return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                .body(Map.of("error", "Invalid credentials"));
     }
 
     @ExceptionHandler(IllegalArgumentException.class)

@@ -3,7 +3,7 @@ package com.foodv.backend.application.product;
 import com.foodv.backend.domain.model.product.Product;
 import com.foodv.backend.domain.port.in.product.UpdateProductUseCase;
 import com.foodv.backend.domain.port.out.ProductRepositoryPort;
-import jakarta.persistence.EntityNotFoundException;
+import com.foodv.backend.domain.exception.ResourceNotFoundException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.stereotype.Service;
@@ -20,10 +20,10 @@ public class UpdateProductHandler implements UpdateProductUseCase {
 
     @Override
     @Transactional
-    @CacheEvict(value = "products", allEntries = true)
+    @CacheEvict(value = "products", key = "#result.storeId")
     public Product execute(Long id, UpdateProductCommand command) {
         Product existing = productRepositoryPort.findById(id)
-                .orElseThrow(() -> new EntityNotFoundException("Producto no encontrado"));
+                .orElseThrow(() -> new ResourceNotFoundException("Producto no encontrado"));
 
         if (command.precio() != null && command.precio().compareTo(BigDecimal.ZERO) <= 0) {
             throw new IllegalArgumentException("El precio debe ser mayor a 0");

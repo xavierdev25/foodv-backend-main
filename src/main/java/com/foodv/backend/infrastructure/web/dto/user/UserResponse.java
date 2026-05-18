@@ -1,5 +1,6 @@
 package com.foodv.backend.infrastructure.web.dto.user;
 
+import com.foodv.backend.domain.model.user.BudgetRange;
 import com.foodv.backend.domain.model.user.UserRole;
 import java.time.LocalDateTime;
 import java.util.List;
@@ -17,6 +18,6 @@ public record UserResponse(
         LocalDateTime creadoEn,
         List<String> preferences,
         List<String> restrictions,
-        String budgetRange,
+        BudgetRange budgetRange,
         List<String> cuisineTypes
 ) {}

@@ -5,7 +5,7 @@ import com.foodv.backend.domain.model.store.Store;
 import com.foodv.backend.domain.port.in.product.CreateProductUseCase;
 import com.foodv.backend.domain.port.out.ProductRepositoryPort;
 import com.foodv.backend.domain.port.out.StoreRepositoryPort;
-import jakarta.persistence.EntityNotFoundException;
+import com.foodv.backend.domain.exception.ResourceNotFoundException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.stereotype.Service;
@@ -23,10 +23,10 @@ public class CreateProductHandler implements CreateProductUseCase {
 
     @Override
     @Transactional
-    @CacheEvict(value = "products", allEntries = true)
+    @CacheEvict(value = "products", key = "#command.storeId()")
     public Product execute(CreateProductCommand command) {
         Store store = storeRepositoryPort.findById(command.storeId())
-                .orElseThrow(() -> new EntityNotFoundException("Tienda no encontrada"));
+                .orElseThrow(() -> new ResourceNotFoundException("Tienda no encontrada"));
 
         if (!store.isActivo()) {
             throw new IllegalArgumentException("La tienda no está activa");

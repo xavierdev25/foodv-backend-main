@@ -1,5 +1,6 @@
 package com.foodv.backend.application.user;
 
+import com.foodv.backend.domain.model.user.BudgetRange;
 import com.foodv.backend.domain.model.user.User;
 import com.foodv.backend.domain.model.user.UserRole;
 import com.foodv.backend.domain.port.in.user.CreateUserUseCase;
@@ -32,7 +33,7 @@ class CreateUserHandlerTest {
     private CreateUserUseCase.CreateUserCommand buildCommand(String email, String telefono) {
         return new CreateUserUseCase.CreateUserCommand(
                 "Xavier", "David", email, "password123", telefono, UserRole.ESTUDIANTE,
-                List.of("pollo", "arroz"), List.of(), "MEDIO", List.of("criolla")
+                List.of("pollo", "arroz"), List.of(), BudgetRange.MEDIO, List.of("criolla")
         );
     }
 

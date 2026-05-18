@@ -14,6 +14,7 @@ public interface StoreJpaRepository extends JpaRepository<StoreEntity, Long> {
 
     List<StoreEntity> findAllByDeletedAtIsNull();
     Page<StoreEntity> findAllByDeletedAtIsNull(Pageable pageable);
+    List<StoreEntity> findByIdInAndDeletedAtIsNull(List<Long> ids);
     Optional<StoreEntity> findByIdAndDeletedAtIsNull(Long id);
     Optional<StoreEntity> findByOwnerIdAndDeletedAtIsNull(Long ownerId);
     Optional<StoreEntity> findByOwnerId(Long ownerId);

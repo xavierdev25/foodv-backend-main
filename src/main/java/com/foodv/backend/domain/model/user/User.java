@@ -26,7 +26,7 @@ public class User {
     private LocalDateTime actualizadoEn;
     private List<String> preferences;
     private List<String> restrictions;
-    private String budgetRange;
+    private BudgetRange budgetRange;
     private List<String> cuisineTypes;
     private Boolean esRepartidor;
     private Long campusId;

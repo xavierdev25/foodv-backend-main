@@ -5,7 +5,7 @@ import com.foodv.backend.domain.common.PagedResult;
 import com.foodv.backend.domain.model.user.User;
 import com.foodv.backend.domain.port.in.user.FindUserUseCase;
 import com.foodv.backend.domain.port.out.UserRepositoryPort;
-import jakarta.persistence.EntityNotFoundException;
+import com.foodv.backend.domain.exception.ResourceNotFoundException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -24,13 +24,13 @@ public class FindUserHandler implements FindUserUseCase {
     @Override
     public User findById(Long id) {
         return userRepositoryPort.findById(id)
-                .orElseThrow(() -> new EntityNotFoundException("Usuario no encontrado"));
+                .orElseThrow(() -> new ResourceNotFoundException("Usuario no encontrado"));
     }
 
     @Override
     public User findByEmail(String email) {
         return userRepositoryPort.findByEmail(email)
-                .orElseThrow(() -> new EntityNotFoundException("Usuario no encontrado"));
+                .orElseThrow(() -> new ResourceNotFoundException("Usuario no encontrado"));
     }
 
     @Override

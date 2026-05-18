@@ -3,8 +3,11 @@ package com.foodv.backend.infrastructure.config;
 import com.foodv.backend.infrastructure.security.JwtAuthenticationFilter;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.core.env.Environment;
+import org.springframework.core.env.Profiles;
 import org.springframework.http.HttpMethod;
 import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.config.annotation.web.configurers.AuthorizeHttpRequestsConfigurer;
 import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration;
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
@@ -21,9 +24,11 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
 public class SecurityConfig {
 
     private final JwtAuthenticationFilter jwtAuthenticationFilter;
+    private final Environment environment;
 
-    public SecurityConfig(JwtAuthenticationFilter jwtAuthenticationFilter) {
+    public SecurityConfig(JwtAuthenticationFilter jwtAuthenticationFilter, Environment environment) {
         this.jwtAuthenticationFilter = jwtAuthenticationFilter;
+        this.environment = environment;
     }
 
     @Bean
@@ -31,12 +36,13 @@ public class SecurityConfig {
         return http
                 .csrf(csrf -> csrf.disable())  // API stateless con tokens Bearer; CSRF no aplica
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
-                .authorizeHttpRequests(auth -> auth
+                .authorizeHttpRequests(auth -> {
+                        configureActuatorAccess(auth);
+                        configureDocumentationAccess(auth);
+                        auth
                         // Endpoints estrictamente públicos
                         .requestMatchers(HttpMethod.POST, "/auth/login", "/auth/register", "/auth/refresh",
                                 "/api/auth/login", "/api/auth/register", "/api/auth/refresh").permitAll()
-                        .requestMatchers("/actuator/health", "/actuator/info", "/actuator/prometheus").permitAll()
-                        .requestMatchers("/swagger-ui/**", "/swagger-ui.html", "/api-docs/**", "/v3/api-docs/**").permitAll()
                         .requestMatchers("/ws/**").permitAll()
                         .requestMatchers("/error").permitAll()// handshake; auth se valida por ChannelInterceptor
 
@@ -102,9 +108,29 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.DELETE, "/images/**").hasAnyRole("ADMIN", "COMERCIO")
 
                         .anyRequest().authenticated()
-                )
+                        ;
+                })
                 .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class)
                 .build();
+    }
+
+    private void configureActuatorAccess(
+            AuthorizeHttpRequestsConfigurer<HttpSecurity>.AuthorizationManagerRequestMatcherRegistry auth) {
+        if (environment.acceptsProfiles(Profiles.of("prod"))) {
+            auth.requestMatchers("/actuator/**", "/api/actuator/**").hasRole("ADMIN");
+            return;
+        }
+        auth.requestMatchers("/actuator/health", "/actuator/info", "/actuator/prometheus").permitAll();
+    }
+
+    private void configureDocumentationAccess(
+            AuthorizeHttpRequestsConfigurer<HttpSecurity>.AuthorizationManagerRequestMatcherRegistry auth) {
+        if (environment.acceptsProfiles(Profiles.of("prod"))) {
+            auth.requestMatchers("/swagger-ui/**", "/swagger-ui.html", "/api-docs/**", "/v3/api-docs/**")
+                    .hasRole("ADMIN");
+            return;
+        }
+        auth.requestMatchers("/swagger-ui/**", "/swagger-ui.html", "/api-docs/**", "/v3/api-docs/**").permitAll();
     }
 
     @Bean

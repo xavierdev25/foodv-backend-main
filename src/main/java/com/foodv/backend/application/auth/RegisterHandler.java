@@ -1,5 +1,6 @@
 package com.foodv.backend.application.auth;
 
+import com.foodv.backend.domain.factory.UserFactory;
 import com.foodv.backend.domain.model.user.User;
 import com.foodv.backend.domain.model.user.UserRole;
 import com.foodv.backend.domain.port.in.auth.RegisterUseCase;
@@ -9,8 +10,6 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.time.LocalDateTime;
-import java.util.List;
 import java.util.Set;
 
 @Service
@@ -50,26 +49,24 @@ public class RegisterHandler implements RegisterUseCase {
             );
         }
 
-        String normalizedEmail = command.email() == null ? "" : command.email().trim().toLowerCase();
+        String normalizedEmail = UserFactory.normalizeEmail(command.email());
 
         if (userRepositoryPort.existsByEmail(normalizedEmail)) {
             throw new IllegalArgumentException("Email ya registrado");
         }
 
-        User user = User.builder()
-                .nombres(command.nombres() == null ? null : command.nombres().trim())
-                .apellidos(command.apellidos() == null ? null : command.apellidos().trim())
-                .email(normalizedEmail)
-                .password(passwordEncoder.encode(command.password()))
-                .telefono(command.telefono() == null ? null : command.telefono().trim())
-                .role(requestedRole)
-                .activo(true)
-                .creadoEn(LocalDateTime.now())
-                .preferences(command.preferences() != null ? command.preferences() : List.of())
-                .restrictions(command.restrictions() != null ? command.restrictions() : List.of())
-                .budgetRange(command.budgetRange() != null ? command.budgetRange() : "MEDIO")
-                .cuisineTypes(command.cuisineTypes() != null ? command.cuisineTypes() : List.of())
-                .build();
+        User user = UserFactory.create(
+                command.nombres(),
+                command.apellidos(),
+                normalizedEmail,
+                passwordEncoder.encode(command.password()),
+                command.telefono(),
+                requestedRole,
+                command.preferences(),
+                command.restrictions(),
+                command.budgetRange(),
+                command.cuisineTypes()
+        );
 
         User saved = userRepositoryPort.save(user);
         metricsPort.recordUserRegistered();

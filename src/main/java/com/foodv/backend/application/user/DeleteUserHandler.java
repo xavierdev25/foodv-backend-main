@@ -4,7 +4,7 @@ import com.foodv.backend.domain.port.in.user.DeleteUserUseCase;
 import com.foodv.backend.domain.port.out.RefreshTokenStorePort;
 import com.foodv.backend.domain.port.out.TokenBlacklistPort;
 import com.foodv.backend.domain.port.out.UserRepositoryPort;
-import jakarta.persistence.EntityNotFoundException;
+import com.foodv.backend.domain.exception.ResourceNotFoundException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -27,7 +27,7 @@ public class DeleteUserHandler implements DeleteUserUseCase {
     @Transactional
     public void execute(Long id) {
         userRepositoryPort.findById(id)
-                .orElseThrow(() -> new EntityNotFoundException("Usuario no encontrado"));
+                .orElseThrow(() -> new ResourceNotFoundException("Usuario no encontrado"));
 
         refreshTokenStorePort.revokeAllByUserId(id);
         tokenBlacklistPort.invalidateAllSessionsBefore(id, System.currentTimeMillis());

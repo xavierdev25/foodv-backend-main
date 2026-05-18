@@ -1,5 +1,7 @@
 package com.foodv.backend.application.rating;
 
+import com.foodv.backend.domain.exception.AuthorizationException;
+import com.foodv.backend.domain.exception.ResourceNotFoundException;
 import com.foodv.backend.domain.model.order.Order;
 import com.foodv.backend.domain.model.order.OrderStatus;
 import com.foodv.backend.domain.model.rating.Rating;
@@ -8,9 +10,7 @@ import com.foodv.backend.domain.port.in.rating.RatingUseCase;
 import com.foodv.backend.domain.port.out.OrderRepositoryPort;
 import com.foodv.backend.domain.port.out.RatingRepositoryPort;
 import com.foodv.backend.domain.port.out.StoreRepositoryPort;
-import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
-import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -32,10 +32,10 @@ public class RatingHandler implements RatingUseCase {
         validateComentario(comentario);
 
         Order order = orderRepositoryPort.findById(orderId)
-                .orElseThrow(() -> new EntityNotFoundException("Orden no encontrada"));
+                .orElseThrow(() -> new ResourceNotFoundException("Orden no encontrada"));
 
         if (!order.getUserId().equals(userId)) {
-            throw new AccessDeniedException("Sólo el dueño de la orden puede calificarla");
+            throw new AuthorizationException("Sólo el dueño de la orden puede calificarla");
         }
 
         if (order.getStatus() != OrderStatus.ENTREGADO) {
@@ -60,14 +60,14 @@ public class RatingHandler implements RatingUseCase {
     @Transactional(readOnly = true)
     public Rating findByOrderId(Long orderId) {
         return ratingRepositoryPort.findByOrderId(orderId)
-                .orElseThrow(() -> new EntityNotFoundException("Calificación no encontrada"));
+                .orElseThrow(() -> new ResourceNotFoundException("Calificación no encontrada"));
     }
 
     @Override
     @Transactional(readOnly = true)
     public StoreRatingSummary findStoreRatingSummary(Long storeId) {
         storeRepositoryPort.findById(storeId)
-                .orElseThrow(() -> new EntityNotFoundException("Tienda no encontrada"));
+                .orElseThrow(() -> new ResourceNotFoundException("Tienda no encontrada"));
         return ratingRepositoryPort.findStoreRatingSummary(storeId);
     }
 
@@ -75,7 +75,7 @@ public class RatingHandler implements RatingUseCase {
     @Transactional(readOnly = true)
     public List<Rating> findByStoreId(Long storeId) {
         storeRepositoryPort.findById(storeId)
-                .orElseThrow(() -> new EntityNotFoundException("Tienda no encontrada"));
+                .orElseThrow(() -> new ResourceNotFoundException("Tienda no encontrada"));
         return ratingRepositoryPort.findByStoreId(storeId);
     }
 

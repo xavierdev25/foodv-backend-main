@@ -55,7 +55,7 @@ public class OrderController {
     })
     @PostMapping
     public ResponseEntity<OrderResponse> create(@Valid @RequestBody CreateOrderRequest request) {
-        Long userId = currentUser.currentUser().getId();
+        Long userId = currentUser.currentUserId();
         Order order = createOrderUseCase.execute(mapper.toCommandWithUser(request, userId));
         return ResponseEntity.status(HttpStatus.CREATED).body(mapper.toResponse(order));
     }
@@ -67,7 +67,7 @@ public class OrderController {
             @RequestParam(defaultValue = "20") int size,
             @RequestParam(defaultValue = "id") String sortBy
     ) {
-        User me = currentUser.currentUser();
+        User me = currentUser.currentUserSummary();
         if (me.getRole() != UserRole.ADMIN) {
             throw new AccessDeniedException("Sólo ADMIN puede listar todas las órdenes");
         }
@@ -109,7 +109,7 @@ public class OrderController {
             @RequestParam(defaultValue = "20") int size,
             @RequestParam(defaultValue = "id") String sortBy
     ) {
-        ownershipService.requireSelfOrAdmin(currentUser.currentUser(), userId);
+        ownershipService.requireSelfOrAdmin(currentUser.currentUserSummary(), userId);
         return ResponseEntity.ok(mapper.toPageResponse(
                 findOrderUseCase.findByUserIdPaginated(userId, new PageQuery(page, size, sortBy, false))
         ));
@@ -123,7 +123,7 @@ public class OrderController {
             @RequestParam(defaultValue = "20") int size,
             @RequestParam(defaultValue = "id") String sortBy
     ) {
-        ownershipService.requireStoreOwnerOrAdmin(currentUser.currentUser(), storeId);
+        ownershipService.requireStoreOwnerOrAdmin(currentUser.currentUserSummary(), storeId);
         return ResponseEntity.ok(mapper.toPageResponse(
                 findOrderUseCase.findByStoreIdPaginated(storeId, new PageQuery(page, size, sortBy, false))
         ));
@@ -137,7 +137,7 @@ public class OrderController {
             @RequestParam(defaultValue = "20") int size,
             @RequestParam(defaultValue = "id") String sortBy
     ) {
-        if (currentUser.currentUser().getRole() != UserRole.ADMIN) {
+        if (currentUser.currentRole() != UserRole.ADMIN) {
             throw new AccessDeniedException("Sólo ADMIN puede listar por estado");
         }
         return ResponseEntity.ok(mapper.toPageResponse(
@@ -150,7 +150,7 @@ public class OrderController {
     public ResponseEntity<OrderResponse> updateStatus(
             @PathVariable Long id,
             @Valid @RequestBody UpdateOrderStatusRequest request) {
-        User me = currentUser.currentUser();
+        User me = currentUser.currentUserSummary();
         if (me.getRole() == UserRole.ESTUDIANTE) {
             throw new AccessDeniedException("Estudiantes no pueden cambiar estado de órdenes");
         }
@@ -164,7 +164,7 @@ public class OrderController {
     public ResponseEntity<OrderResponse> cancel(
             @PathVariable Long id,
             @RequestBody(required = false) CancelOrderRequest request) {
-        User me = currentUser.currentUser();
+        User me = currentUser.currentUserSummary();
         ownershipService.requireOrderAccess(me, id);
         String motivo = request != null ? request.motivo() : null;
         Order order = cancelOrderUseCase.execute(
@@ -175,7 +175,7 @@ public class OrderController {
     @Operation(summary = "Historial de estados (sólo participantes)")
     @GetMapping("/{id}/history")
     public ResponseEntity<java.util.List<OrderStatusHistoryResponse>> getHistory(@PathVariable Long id) {
-        ownershipService.requireOrderAccess(currentUser.currentUser(), id);
+        ownershipService.requireOrderAccess(currentUser.currentUserSummary(), id);
         java.util.List<OrderStatusHistoryResponse> result = orderHistoryPort.findByOrderId(id).stream()
                 .map(h -> new OrderStatusHistoryResponse(
                         h.id(), h.orderId(), h.status(), h.changedBy(), h.notas(), h.creadoEn()))

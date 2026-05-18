@@ -1,7 +1,7 @@
 package com.foodv.backend.infrastructure.security;
 
 import com.foodv.backend.domain.model.user.User;
-import com.foodv.backend.domain.port.out.UserRepositoryPort;
+import com.foodv.backend.domain.model.user.UserRole;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -10,30 +10,41 @@ import org.springframework.stereotype.Component;
 @Component
 public class AuthenticatedUserResolver {
 
-    private final UserRepositoryPort userRepositoryPort;
-
-    public AuthenticatedUserResolver(UserRepositoryPort userRepositoryPort) {
-        this.userRepositoryPort = userRepositoryPort;
+    public User currentUser() {
+        return currentUserSummary();
     }
 
-    public User currentUser() {
-        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
-        if (auth == null || !auth.isAuthenticated() || auth.getName() == null) {
-            throw new AccessDeniedException("No autenticado");
-        }
-        return userRepositoryPort.findByEmail(auth.getName())
-                .orElseThrow(() -> new AccessDeniedException("Usuario no encontrado"));
+    public User currentUserSummary() {
+        AuthenticatedUserPrincipal principal = currentPrincipal();
+        return User.builder()
+                .id(principal.userId())
+                .nombres(principal.nombres())
+                .email(principal.email())
+                .role(principal.role())
+                .activo(true)
+                .build();
     }
 
     public Long currentUserId() {
-        return currentUser().getId();
+        return currentPrincipal().userId();
     }
 
     public String currentEmail() {
+        return currentPrincipal().email();
+    }
+
+    public UserRole currentRole() {
+        return currentPrincipal().role();
+    }
+
+    private AuthenticatedUserPrincipal currentPrincipal() {
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
-        if (auth == null || auth.getName() == null) {
+        if (auth == null || !auth.isAuthenticated()) {
             throw new AccessDeniedException("No autenticado");
         }
-        return auth.getName();
+        if (auth.getPrincipal() instanceof AuthenticatedUserPrincipal principal) {
+            return principal;
+        }
+        throw new AccessDeniedException("No autenticado");
     }
 }

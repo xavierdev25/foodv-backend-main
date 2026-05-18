@@ -1,5 +1,6 @@
 package com.foodv.backend.application.auth;
 
+import com.foodv.backend.domain.exception.AuthenticationFailedException;
 import com.foodv.backend.domain.model.user.User;
 import com.foodv.backend.domain.port.in.auth.LoginUseCase;
 import com.foodv.backend.domain.port.out.LoginAttemptPort;
@@ -50,21 +51,26 @@ public class LoginHandler implements LoginUseCase {
         Optional<User> maybeUser = userRepositoryPort.findByEmail(normalizedEmail);
         if (maybeUser.isEmpty()) {
             loginAttemptPort.recordFailedAttempt(normalizedEmail);
-            throw new IllegalArgumentException(GENERIC_ERROR);
+            throw new AuthenticationFailedException(GENERIC_ERROR);
         }
 
         User user = maybeUser.get();
 
         if (!passwordEncoder.matches(command.password(), user.getPassword())) {
             loginAttemptPort.recordFailedAttempt(normalizedEmail);
-            throw new IllegalArgumentException(GENERIC_ERROR);
+            throw new AuthenticationFailedException(GENERIC_ERROR);
         }
 
         if (!user.isActivo()) {
-            throw new IllegalArgumentException("Usuario inactivo");
+            throw new AuthenticationFailedException(GENERIC_ERROR);
         }
 
-        String accessToken = tokenServicePort.generateAccessToken(user.getEmail(), user.getRole());
+        String accessToken = tokenServicePort.generateAccessToken(
+                user.getId(),
+                user.getEmail(),
+                user.getRole(),
+                user.getNombres()
+        );
         String refreshToken = tokenServicePort.generateRefreshToken(user.getEmail());
 
         refreshTokenStorePort.save(

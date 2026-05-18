@@ -1,5 +1,6 @@
 package com.foodv.backend.application.auth;
 
+import com.foodv.backend.domain.exception.AuthenticationFailedException;
 import com.foodv.backend.domain.model.user.User;
 import com.foodv.backend.domain.model.user.UserRole;
 import com.foodv.backend.domain.port.in.auth.LoginUseCase;
@@ -59,7 +60,7 @@ class LoginHandlerTest {
         when(loginAttemptPort.isBlocked(anyString())).thenReturn(false);
         when(userRepositoryPort.findByEmail("xavier@foodv.com")).thenReturn(Optional.of(activeUser));
         when(passwordEncoder.matches("password123", "hashedPassword")).thenReturn(true);
-        when(tokenServicePort.generateAccessToken(anyString(), any())).thenReturn("accessToken");
+        when(tokenServicePort.generateAccessToken(anyLong(), anyString(), any(), anyString())).thenReturn("accessToken");
         when(tokenServicePort.generateRefreshToken(anyString())).thenReturn("refreshToken");
         when(tokenServicePort.getAccessTokenExpirationMillis()).thenReturn(86400000L);
         when(tokenServicePort.getRefreshTokenExpirationMillis()).thenReturn(604800000L);
@@ -82,7 +83,7 @@ class LoginHandlerTest {
         when(loginAttemptPort.isBlocked(anyString())).thenReturn(false);
         when(userRepositoryPort.findByEmail("noexiste@foodv.com")).thenReturn(Optional.empty());
 
-        IllegalArgumentException ex = assertThrows(IllegalArgumentException.class, () ->
+        AuthenticationFailedException ex = assertThrows(AuthenticationFailedException.class, () ->
                 loginHandler.execute(new LoginUseCase.LoginCommand("noexiste@foodv.com", "password123"))
         );
         assertTrue(ex.getMessage().toLowerCase().contains("credenciales"));
@@ -96,7 +97,7 @@ class LoginHandlerTest {
         when(userRepositoryPort.findByEmail("xavier@foodv.com")).thenReturn(Optional.of(activeUser));
         when(passwordEncoder.matches("wrongpassword", "hashedPassword")).thenReturn(false);
 
-        assertThrows(IllegalArgumentException.class, () ->
+        assertThrows(AuthenticationFailedException.class, () ->
                 loginHandler.execute(new LoginUseCase.LoginCommand("xavier@foodv.com", "wrongpassword"))
         );
         verify(loginAttemptPort).recordFailedAttempt("xavier@foodv.com");
@@ -130,7 +131,7 @@ class LoginHandlerTest {
         when(userRepositoryPort.findByEmail("inactivo@foodv.com")).thenReturn(Optional.of(inactiveUser));
         when(passwordEncoder.matches("password123", "hashedPassword")).thenReturn(true);
 
-        assertThrows(IllegalArgumentException.class, () ->
+        assertThrows(AuthenticationFailedException.class, () ->
                 loginHandler.execute(new LoginUseCase.LoginCommand("inactivo@foodv.com", "password123"))
         );
     }

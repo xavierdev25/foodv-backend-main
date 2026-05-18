@@ -2,6 +2,7 @@ package com.foodv.backend.domain.service;
 
 import com.foodv.backend.domain.model.order.Order;
 import com.foodv.backend.domain.model.order.OrderStatus;
+import org.springframework.stereotype.Component;
 
 import java.time.LocalDateTime;
 
@@ -10,6 +11,7 @@ import java.time.LocalDateTime;
  * Encapsula reglas de negocio que no pertenecen a una entidad específica
  * pero son parte del dominio — sin dependencias de framework.
  */
+@Component
 public class OrderDomainService {
 
     /**

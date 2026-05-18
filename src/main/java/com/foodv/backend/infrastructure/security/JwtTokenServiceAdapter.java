@@ -24,10 +24,13 @@ public class JwtTokenServiceAdapter implements TokenServicePort {
     }
 
     @Override
-    public String generateAccessToken(String email, UserRole role) {
+    public String generateAccessToken(Long userId, String email, UserRole role, String nombres) {
         return Jwts.builder()
                 .subject(email)
+                .claim("userId", userId)
+                .claim("email", email)
                 .claim("role", role.name())
+                .claim("nombres", nombres)
                 .issuer(jwtConfig.getIssuer())
                 .issuedAt(new Date())
                 .expiration(new Date(System.currentTimeMillis() + jwtConfig.getExpiration()))
@@ -58,12 +61,31 @@ public class JwtTokenServiceAdapter implements TokenServicePort {
 
     @Override
     public String extractEmail(String token) {
-        return extractAllClaims(token).getSubject();
+        Claims claims = extractAllClaims(token);
+        String email = claims.get("email", String.class);
+        return email != null ? email : claims.getSubject();
     }
 
     @Override
     public String extractRole(String token) {
         return extractAllClaims(token).get("role", String.class);
+    }
+
+    @Override
+    public String extractNombres(String token) {
+        return extractAllClaims(token).get("nombres", String.class);
+    }
+
+    @Override
+    public Long extractUserId(String token) {
+        Object userId = extractAllClaims(token).get("userId");
+        return userId instanceof Number number ? number.longValue() : null;
+    }
+
+    @Override
+    public long extractIssuedAtMillis(String token) {
+        Date issuedAt = extractAllClaims(token).getIssuedAt();
+        return issuedAt != null ? issuedAt.getTime() : 0L;
     }
 
     @Override

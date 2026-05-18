@@ -106,7 +106,7 @@ public class PaymentController {
     })
     @GetMapping("/me")
     public ResponseEntity<List<PaymentResponse>> findMine() {
-        Long userId = currentUser.currentUser().getId();
+        Long userId = currentUser.currentUserId();
         List<PaymentResponse> responses = findPaymentUseCase.findByUserId(userId).stream()
                 .map(mapper::toResponse)
                 .toList();
@@ -116,7 +116,7 @@ public class PaymentController {
     @Operation(summary = "Listar pagos por usuario (sólo ADMIN)")
     @GetMapping("/user/{userId}")
     public ResponseEntity<List<PaymentResponse>> findByUserId(@PathVariable Long userId) {
-        User me = currentUser.currentUser();
+        User me = currentUser.currentUserSummary();
         if (me.getRole() != UserRole.ADMIN && !me.getId().equals(userId)) {
             throw new AccessDeniedException("Sin permisos para ver pagos ajenos");
         }
@@ -157,17 +157,14 @@ public class PaymentController {
             return ResponseEntity.badRequest().build();
         }
 
-        if (signatureVerifier.shouldVerify()) {
-            if (signature == null || requestId == null) {
-                log.warn("Webhook rechazado: falta firma o request-id. dataId={}", externalId);
-                return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
-            } else if (!signatureVerifier.verify(signature, requestId, signedDataId)) {
-                log.warn("Webhook MercadoPago: firma inválida. requestId={}, signedDataId={}",
-                        requestId, signedDataId);
-                return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
-            }
-        } else {
-            log.warn("Webhook HMAC verification DESHABILITADA (dev mode). dataId={}", externalId);
+        if (signature == null || requestId == null) {
+            log.warn("Webhook rechazado: falta firma o request-id. dataId={}", externalId);
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+        }
+        if (!signatureVerifier.verify(signature, requestId, signedDataId)) {
+            log.warn("Webhook MercadoPago: firma inválida. requestId={}, signedDataId={}",
+                    requestId, signedDataId);
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
         }
 
         if (externalId == null || externalId.isBlank()) {
@@ -177,6 +174,10 @@ public class PaymentController {
 
         String topic = request.getParameter("topic");
         String type = request.getParameter("type");
+        if (topic == null || topic.isBlank()) {
+            log.warn("Webhook MercadoPago: topic ausente.");
+            return ResponseEntity.badRequest().build();
+        }
         if ("merchant_order".equals(topic)) {
             log.info("Webhook merchant_order ignorado. id={}, type={}", externalId, type);
             return ResponseEntity.ok().build();
@@ -194,7 +195,7 @@ public class PaymentController {
     }
 
     private void ensureOwnerOrAdmin(Long ownerUserId) {
-        User me = currentUser.currentUser();
+        User me = currentUser.currentUserSummary();
         if (me.getRole() == UserRole.ADMIN) return;
         if (me.getId().equals(ownerUserId)) return;
         throw new AccessDeniedException("Sin permisos sobre este pago");

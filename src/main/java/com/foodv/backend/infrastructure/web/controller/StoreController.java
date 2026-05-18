@@ -51,7 +51,7 @@ public class StoreController {
     })
     @PostMapping
     public ResponseEntity<StoreResponse> create(@Valid @RequestBody CreateStoreRequest request) {
-        User me = currentUser.currentUser();
+        User me = currentUser.currentUserSummary();
         if (me.getRole() != UserRole.COMERCIO && me.getRole() != UserRole.ADMIN) {
             throw new AccessDeniedException("Sólo COMERCIO o ADMIN pueden crear tiendas");
         }
@@ -79,7 +79,7 @@ public class StoreController {
             @RequestParam(defaultValue = "20") int size,
             @RequestParam(defaultValue = "id") String sortBy
     ) {
-        if (currentUser.currentUser().getRole() != UserRole.ADMIN) {
+        if (currentUser.currentRole() != UserRole.ADMIN) {
             throw new AccessDeniedException("Sólo ADMIN");
         }
         return ResponseEntity.ok(PageResponse.from(
@@ -97,7 +97,7 @@ public class StoreController {
     @Operation(summary = "Mi tienda")
     @GetMapping("/me")
     public ResponseEntity<StoreResponse> findMine() {
-        Store store = findStoreUseCase.findByOwnerId(currentUser.currentUser().getId());
+        Store store = findStoreUseCase.findByOwnerId(currentUser.currentUserId());
         return ResponseEntity.ok(mapper.toResponse(store));
     }
 
@@ -105,7 +105,7 @@ public class StoreController {
     @PutMapping("/{id}")
     public ResponseEntity<StoreResponse> update(@PathVariable Long id,
                                                 @Valid @RequestBody UpdateStoreRequest request) {
-        ownershipService.requireStoreOwnerOrAdmin(currentUser.currentUser(), id);
+        ownershipService.requireStoreOwnerOrAdmin(currentUser.currentUserSummary(), id);
         Store store = updateStoreUseCase.execute(id, mapper.toCommand(request));
         return ResponseEntity.ok(mapper.toResponse(store));
     }
@@ -113,7 +113,7 @@ public class StoreController {
     @Operation(summary = "Eliminar tienda (sólo dueño o ADMIN)")
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> delete(@PathVariable Long id) {
-        ownershipService.requireStoreOwnerOrAdmin(currentUser.currentUser(), id);
+        ownershipService.requireStoreOwnerOrAdmin(currentUser.currentUserSummary(), id);
         deleteStoreUseCase.execute(id);
         return ResponseEntity.noContent().build();
     }

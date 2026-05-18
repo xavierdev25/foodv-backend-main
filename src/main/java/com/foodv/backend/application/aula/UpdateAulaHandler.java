@@ -3,7 +3,7 @@ package com.foodv.backend.application.aula;
 import com.foodv.backend.domain.model.aula.Aula;
 import com.foodv.backend.domain.port.in.aula.UpdateAulaUseCase;
 import com.foodv.backend.domain.port.out.AulaRepositoryPort;
-import jakarta.persistence.EntityNotFoundException;
+import com.foodv.backend.domain.exception.ResourceNotFoundException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
@@ -16,7 +16,7 @@ public class UpdateAulaHandler implements UpdateAulaUseCase {
     @Override
     public Aula execute(Long id, UpdateAulaCommand command) {
         Aula existing = aulaRepositoryPort.findById(id)
-                .orElseThrow(() -> new EntityNotFoundException("Aula no encontrada"));
+                .orElseThrow(() -> new ResourceNotFoundException("Aula no encontrada"));
 
         Aula aula = Aula.builder()
                 .id(existing.getId())

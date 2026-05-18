@@ -1,0 +1,19 @@
+ALTER TABLE IF EXISTS users
+    ALTER COLUMN creado_en SET DEFAULT NOW(),
+    ALTER COLUMN actualizado_en SET DEFAULT NOW();
+
+ALTER TABLE IF EXISTS stores
+    ALTER COLUMN creado_en SET DEFAULT NOW(),
+    ALTER COLUMN actualizado_en SET DEFAULT NOW();
+
+ALTER TABLE IF EXISTS products
+    ALTER COLUMN creado_en SET DEFAULT NOW(),
+    ALTER COLUMN actualizado_en SET DEFAULT NOW();
+
+ALTER TABLE IF EXISTS orders
+    ALTER COLUMN creado_en SET DEFAULT NOW(),
+    ALTER COLUMN actualizado_en SET DEFAULT NOW();
+
+ALTER TABLE IF EXISTS payments
+    ALTER COLUMN creado_en SET DEFAULT NOW(),
+    ALTER COLUMN actualizado_en SET DEFAULT NOW();

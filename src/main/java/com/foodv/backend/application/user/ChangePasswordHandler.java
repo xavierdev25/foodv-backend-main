@@ -1,11 +1,11 @@
 package com.foodv.backend.application.user;
 
+import com.foodv.backend.domain.exception.ResourceNotFoundException;
 import com.foodv.backend.domain.model.user.User;
 import com.foodv.backend.domain.port.in.user.ChangePasswordUseCase;
 import com.foodv.backend.domain.port.out.RefreshTokenStorePort;
 import com.foodv.backend.domain.port.out.TokenBlacklistPort;
 import com.foodv.backend.domain.port.out.UserRepositoryPort;
-import jakarta.persistence.EntityNotFoundException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -38,7 +38,7 @@ public class ChangePasswordHandler implements ChangePasswordUseCase {
         }
 
         User user = userRepositoryPort.findByEmail(email)
-                .orElseThrow(() -> new EntityNotFoundException("Usuario no encontrado"));
+                .orElseThrow(() -> new ResourceNotFoundException("Usuario no encontrado"));
 
         if (!passwordEncoder.matches(currentPassword, user.getPassword())) {
             throw new IllegalArgumentException("La contraseña actual es incorrecta");

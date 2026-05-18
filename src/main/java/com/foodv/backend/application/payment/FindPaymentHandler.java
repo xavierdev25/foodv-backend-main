@@ -3,7 +3,7 @@ package com.foodv.backend.application.payment;
 import com.foodv.backend.domain.model.payment.Payment;
 import com.foodv.backend.domain.port.in.payment.FindPaymentUseCase;
 import com.foodv.backend.domain.port.out.PaymentRepositoryPort;
-import jakarta.persistence.EntityNotFoundException;
+import com.foodv.backend.domain.exception.ResourceNotFoundException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
@@ -18,13 +18,13 @@ public class FindPaymentHandler implements FindPaymentUseCase {
     @Override
     public Payment findById(Long id) {
         return paymentRepositoryPort.findById(id)
-                .orElseThrow(() -> new EntityNotFoundException("Pago no encontrado"));
+                .orElseThrow(() -> new ResourceNotFoundException("Pago no encontrado"));
     }
 
     @Override
     public Payment findByOrderId(Long orderId) {
         return paymentRepositoryPort.findByOrderId(orderId)
-                .orElseThrow(() -> new EntityNotFoundException("Pago no encontrado para esta orden"));
+                .orElseThrow(() -> new ResourceNotFoundException("Pago no encontrado para esta orden"));
     }
 
     @Override

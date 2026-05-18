@@ -1,11 +1,13 @@
 package com.foodv.backend.infrastructure.web.dto.user;
 
+import com.foodv.backend.domain.model.user.BudgetRange;
 import com.foodv.backend.domain.model.user.UserRole;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
+import java.util.List;
 
 public record CreateUserRequest(
         @NotBlank(message = "Nombres obligatorios")
@@ -35,5 +37,17 @@ public record CreateUserRequest(
         String telefono,
 
         @NotNull(message = "Rol obligatorio")
-        UserRole role
-) {}
+        UserRole role,
+
+        List<String> preferences,
+        List<String> restrictions,
+        BudgetRange budgetRange,
+        List<String> cuisineTypes
+) {
+        public CreateUserRequest {
+                if (preferences == null) preferences = List.of();
+                if (restrictions == null) restrictions = List.of();
+                if (budgetRange == null) budgetRange = BudgetRange.MEDIO;
+                if (cuisineTypes == null) cuisineTypes = List.of();
+        }
+}

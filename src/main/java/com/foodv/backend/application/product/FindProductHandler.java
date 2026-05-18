@@ -6,7 +6,7 @@ import com.foodv.backend.domain.model.product.Product;
 import com.foodv.backend.domain.model.product.ProductCategory;
 import com.foodv.backend.domain.port.in.product.FindProductUseCase;
 import com.foodv.backend.domain.port.out.ProductRepositoryPort;
-import jakarta.persistence.EntityNotFoundException;
+import com.foodv.backend.domain.exception.ResourceNotFoundException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
@@ -25,7 +25,7 @@ public class FindProductHandler implements FindProductUseCase {
     @Override
     public Product findById(Long id) {
         return productRepositoryPort.findById(id)
-                .orElseThrow(() -> new EntityNotFoundException("Producto no encontrado"));
+                .orElseThrow(() -> new ResourceNotFoundException("Producto no encontrado"));
     }
 
     @Override

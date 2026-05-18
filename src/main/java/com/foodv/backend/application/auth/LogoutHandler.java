@@ -28,10 +28,11 @@ public class LogoutHandler implements LogoutUseCase {
         if (command.refreshToken() != null && !command.refreshToken().isBlank()) {
             refreshTokenStorePort.revokeByToken(command.refreshToken());
         }
-        if (command.userId() != null) {
-            refreshTokenStorePort.revokeAllByUserId(command.userId());
-        }
         if (command.accessToken() != null && !command.accessToken().isBlank()) {
+            Long userId = tokenServicePort.extractUserId(command.accessToken());
+            if (userId != null) {
+                refreshTokenStorePort.revokeAllByUserId(userId);
+            }
             tokenBlacklistPort.blacklist(command.accessToken(),
                     tokenServicePort.getAccessTokenExpirationMillis());
         }

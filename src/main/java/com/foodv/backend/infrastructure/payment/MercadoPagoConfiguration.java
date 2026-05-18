@@ -10,10 +10,10 @@ import org.springframework.context.annotation.Configuration;
 @Getter
 public class MercadoPagoConfiguration {
 
-    @Value("${MERCADOPAGO_ACCESS_TOKEN}")
+    @Value("${mercadopago.access-token}")
     private String accessToken;
 
-    @Value("${MERCADOPAGO_PUBLIC_KEY}")
+    @Value("${mercadopago.public-key}")
     private String publicKey;
 
     @PostConstruct

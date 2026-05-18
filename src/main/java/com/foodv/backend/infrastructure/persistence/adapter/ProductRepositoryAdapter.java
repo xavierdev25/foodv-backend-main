@@ -44,6 +44,13 @@ public class ProductRepositoryAdapter implements ProductRepositoryPort {
     }
 
     @Override
+    public List<Product> findAllById(List<Long> ids) {
+        return jpaRepository.findByIdInAndDeletedAtIsNull(ids).stream()
+                .map(mapper::toDomain)
+                .toList();
+    }
+
+    @Override
     public List<Product> findByStoreId(Long storeId) {
         return jpaRepository.findByStoreIdAndDeletedAtIsNull(storeId).stream().map(mapper::toDomain).toList();
     }

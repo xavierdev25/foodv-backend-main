@@ -7,17 +7,15 @@ import com.foodv.backend.domain.model.order.OrderStatus;
 import com.foodv.backend.domain.model.store.Store;
 import com.foodv.backend.domain.model.user.User;
 import com.foodv.backend.domain.model.user.UserRole;
+import com.foodv.backend.domain.exception.AuthorizationException;
 import com.foodv.backend.domain.port.in.order.FindOrderUseCase;
 import com.foodv.backend.domain.port.out.OrderRepositoryPort;
 import com.foodv.backend.domain.port.out.StoreRepositoryPort;
 import com.foodv.backend.domain.port.out.UserRepositoryPort;
-import jakarta.persistence.EntityNotFoundException;
+import com.foodv.backend.domain.exception.ResourceNotFoundException;
 import lombok.RequiredArgsConstructor;
-import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-
-import java.util.List;
 
 @Service
 @RequiredArgsConstructor
@@ -31,19 +29,19 @@ public class FindOrderHandler implements FindOrderUseCase {
     @Override
     public Order findById(Long id) {
         return orderRepositoryPort.findByIdWithItems(id)
-                .orElseThrow(() -> new EntityNotFoundException("Orden no encontrada"));
+                .orElseThrow(() -> new ResourceNotFoundException("Orden no encontrada"));
     }
 
     @Override
     public Order findByIdForUser(Long orderId, String email) {
         Order order = orderRepositoryPort.findByIdWithItems(orderId)
-                .orElseThrow(() -> new EntityNotFoundException("Orden no encontrada"));
+                .orElseThrow(() -> new ResourceNotFoundException("Orden no encontrada"));
 
         User user = userRepositoryPort.findByEmail(email)
-                .orElseThrow(() -> new AccessDeniedException("No autenticado"));
+                .orElseThrow(() -> new AuthorizationException("No autenticado"));
 
         if (!canAccess(user, order)) {
-            throw new AccessDeniedException("No tienes permiso para ver esta orden");
+            throw new AuthorizationException("No tienes permiso para ver esta orden");
         }
         return order;
     }
@@ -51,7 +49,7 @@ public class FindOrderHandler implements FindOrderUseCase {
     @Override
     public PagedResult<Order> findForUser(String email, PageQuery query) {
         User user = userRepositoryPort.findByEmail(email)
-                .orElseThrow(() -> new AccessDeniedException("No autenticado"));
+                .orElseThrow(() -> new AuthorizationException("No autenticado"));
 
         if (user.getRole() == UserRole.ADMIN) {
             return orderRepositoryPort.findAllPaginated(query);
@@ -59,30 +57,10 @@ public class FindOrderHandler implements FindOrderUseCase {
         if (user.getRole() == UserRole.COMERCIO) {
             Long storeId = storeRepositoryPort.findByOwnerId(user.getId())
                     .map(Store::getId)
-                    .orElseThrow(() -> new AccessDeniedException("No tienes una tienda asociada"));
+                    .orElseThrow(() -> new AuthorizationException("No tienes una tienda asociada"));
             return orderRepositoryPort.findByStoreIdPaginated(storeId, query);
         }
         return orderRepositoryPort.findByUserIdPaginated(user.getId(), query);
-    }
-
-    @Override
-    public List<Order> findByUserId(Long userId) {
-        return orderRepositoryPort.findByUserId(userId);
-    }
-
-    @Override
-    public List<Order> findByStoreId(Long storeId) {
-        return orderRepositoryPort.findByStoreId(storeId);
-    }
-
-    @Override
-    public List<Order> findByStatus(OrderStatus status) {
-        return orderRepositoryPort.findByStatus(status);
-    }
-
-    @Override
-    public List<Order> findAll() {
-        return orderRepositoryPort.findAll();
     }
 
     @Override

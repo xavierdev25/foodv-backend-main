@@ -3,7 +3,7 @@ package com.foodv.backend.application.store;
 import com.foodv.backend.domain.model.store.Store;
 import com.foodv.backend.domain.port.in.store.UpdateStoreUseCase;
 import com.foodv.backend.domain.port.out.StoreRepositoryPort;
-import jakarta.persistence.EntityNotFoundException;
+import com.foodv.backend.domain.exception.ResourceNotFoundException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -20,7 +20,7 @@ public class UpdateStoreHandler implements UpdateStoreUseCase {
     @Transactional
     public Store execute(Long id, UpdateStoreCommand command) {
         Store existing = storeRepositoryPort.findById(id)
-                .orElseThrow(() -> new EntityNotFoundException("Tienda no encontrada"));
+                .orElseThrow(() -> new ResourceNotFoundException("Tienda no encontrada"));
 
         Store store = Store.builder()
                 .id(existing.getId())

@@ -3,8 +3,9 @@ package com.foodv.backend.application.store;
 import com.foodv.backend.domain.model.store.Store;
 import com.foodv.backend.domain.port.in.store.FindStoreUseCase;
 import com.foodv.backend.domain.port.out.StoreRepositoryPort;
-import jakarta.persistence.EntityNotFoundException;
+import com.foodv.backend.domain.exception.ResourceNotFoundException;
 import lombok.RequiredArgsConstructor;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -16,15 +17,16 @@ public class FindStoreHandler implements FindStoreUseCase {
     private final StoreRepositoryPort storeRepositoryPort;
 
     @Override
+    @Cacheable(value = "stores", key = "#id")
     public Store findById(Long id) {
         return storeRepositoryPort.findById(id)
-                .orElseThrow(() -> new EntityNotFoundException("Tienda no encontrada"));
+                .orElseThrow(() -> new ResourceNotFoundException("Tienda no encontrada"));
     }
 
     @Override
     public Store findByOwnerId(Long ownerId) {
         return storeRepositoryPort.findByOwnerId(ownerId)
-                .orElseThrow(() -> new EntityNotFoundException("Tienda no encontrada"));
+                .orElseThrow(() -> new ResourceNotFoundException("Tienda no encontrada"));
     }
 
     @Override

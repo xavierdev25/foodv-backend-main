@@ -2,7 +2,7 @@ package com.foodv.backend.application.product;
 
 import com.foodv.backend.domain.port.in.product.DeleteProductUseCase;
 import com.foodv.backend.domain.port.out.ProductRepositoryPort;
-import jakarta.persistence.EntityNotFoundException;
+import com.foodv.backend.domain.exception.ResourceNotFoundException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.stereotype.Service;
@@ -16,11 +16,13 @@ public class DeleteProductHandler implements DeleteProductUseCase {
 
     @Override
     @Transactional
-    @CacheEvict(value = "products", allEntries = true)
-    public void execute(Long id) {
-        productRepositoryPort.findById(id)
-                .orElseThrow(() -> new EntityNotFoundException("Producto no encontrado"));
+    @CacheEvict(value = "products", key = "#result")
+    public Long execute(Long id) {
+        Long storeId = productRepositoryPort.findById(id)
+                .map(product -> product.getStoreId())
+                .orElseThrow(() -> new ResourceNotFoundException("Producto no encontrado"));
 
         productRepositoryPort.deleteById(id);
+        return storeId;
     }
 }

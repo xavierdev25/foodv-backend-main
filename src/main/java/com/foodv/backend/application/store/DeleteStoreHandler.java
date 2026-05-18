@@ -2,7 +2,7 @@ package com.foodv.backend.application.store;
 
 import com.foodv.backend.domain.port.in.store.DeleteStoreUseCase;
 import com.foodv.backend.domain.port.out.StoreRepositoryPort;
-import jakarta.persistence.EntityNotFoundException;
+import com.foodv.backend.domain.exception.ResourceNotFoundException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
@@ -15,7 +15,7 @@ public class DeleteStoreHandler implements DeleteStoreUseCase {
     @Override
     public void execute(Long id) {
         storeRepositoryPort.findById(id)
-                .orElseThrow(() -> new EntityNotFoundException("Tienda no encontrada"));
+                .orElseThrow(() -> new ResourceNotFoundException("Tienda no encontrada"));
 
         storeRepositoryPort.deleteById(id);
     }

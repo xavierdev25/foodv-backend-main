@@ -4,7 +4,6 @@ import com.foodv.backend.domain.port.in.auth.LoginUseCase;
 import com.foodv.backend.domain.port.in.auth.LogoutUseCase;
 import com.foodv.backend.domain.port.in.auth.RefreshTokenUseCase;
 import com.foodv.backend.domain.port.in.auth.RegisterUseCase;
-import com.foodv.backend.domain.port.out.UserRepositoryPort;
 import com.foodv.backend.infrastructure.web.dto.auth.AuthResponse;
 import com.foodv.backend.infrastructure.web.dto.auth.LoginRequest;
 import com.foodv.backend.infrastructure.web.dto.auth.RegisterRequest;
@@ -16,7 +15,6 @@ import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.Map;
@@ -30,24 +28,21 @@ public class AuthController {
     private final RegisterUseCase registerUseCase;
     private final RefreshTokenUseCase refreshTokenUseCase;
     private final LogoutUseCase logoutUseCase;
-    private final UserRepositoryPort userRepositoryPort;
 
     public AuthController(LoginUseCase loginUseCase,
                           RegisterUseCase registerUseCase,
                           RefreshTokenUseCase refreshTokenUseCase,
-                          LogoutUseCase logoutUseCase,
-                          UserRepositoryPort userRepositoryPort) {
+                          LogoutUseCase logoutUseCase) {
         this.loginUseCase = loginUseCase;
         this.registerUseCase = registerUseCase;
         this.refreshTokenUseCase = refreshTokenUseCase;
         this.logoutUseCase = logoutUseCase;
-        this.userRepositoryPort = userRepositoryPort;
     }
 
     @Operation(summary = "Iniciar sesión")
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "Login exitoso"),
-            @ApiResponse(responseCode = "400", description = "Credenciales inválidas"),
+            @ApiResponse(responseCode = "401", description = "Credenciales inválidas"),
             @ApiResponse(responseCode = "429", description = "Demasiados intentos fallidos")
     })
     @PostMapping("/login")
@@ -97,19 +92,12 @@ public class AuthController {
     @PostMapping("/logout")
     public ResponseEntity<Map<String, String>> logout(
             @RequestBody(required = false) LogoutRequest body,
-            @RequestHeader(value = "Authorization", required = false) String authHeader,
-            Authentication authentication) {
-
-        Long userId = null;
-        if (authentication != null && authentication.getName() != null) {
-            userId = userRepositoryPort.findByEmail(authentication.getName())
-                    .map(u -> u.getId()).orElse(null);
-        }
+            @RequestHeader(value = "Authorization", required = false) String authHeader) {
         String accessToken = (authHeader != null && authHeader.startsWith("Bearer "))
                 ? authHeader.substring(7) : null;
         String refreshToken = body != null ? body.refreshToken() : null;
 
-        logoutUseCase.execute(new LogoutUseCase.LogoutCommand(userId, accessToken, refreshToken));
+        logoutUseCase.execute(new LogoutUseCase.LogoutCommand(accessToken, refreshToken));
 
         return ResponseEntity.ok(Map.of("message", "Sesión cerrada exitosamente"));
     }

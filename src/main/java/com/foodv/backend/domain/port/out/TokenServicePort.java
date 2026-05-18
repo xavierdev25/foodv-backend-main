@@ -4,7 +4,11 @@ import com.foodv.backend.domain.model.user.UserRole;
 
 public interface TokenServicePort {
 
-    String generateAccessToken(String email, UserRole role);
+    default String generateAccessToken(Long userId, String email, UserRole role) {
+        return generateAccessToken(userId, email, role, null);
+    }
+
+    String generateAccessToken(Long userId, String email, UserRole role, String nombres);
 
     String generateRefreshToken(String email);
 
@@ -13,6 +17,12 @@ public interface TokenServicePort {
     String extractEmail(String token);
 
     String extractRole(String token);
+
+    String extractNombres(String token);
+
+    Long extractUserId(String token);
+
+    long extractIssuedAtMillis(String token);
 
     long getAccessTokenExpirationMillis();
 

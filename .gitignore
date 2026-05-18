@@ -36,6 +36,7 @@ build/
 .env
 .env.local
 .env.*.local
+docker-compose.override.yml
 
 ### Local Maven repository ###
 .m2/
@@ -50,3 +51,7 @@ build/
 *.log
 logs/
 src/main/resources/firebase-credentials.json
+google-services.json
+
+.agents
+skills-lock.json

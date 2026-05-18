@@ -1,5 +1,6 @@
 package com.foodv.backend.infrastructure.web.dto.auth;
 
+import com.foodv.backend.domain.model.user.BudgetRange;
 import com.foodv.backend.domain.model.user.UserRole;
 import jakarta.validation.constraints.*;
 
@@ -37,13 +38,13 @@ public record RegisterRequest(
 
         List<String> preferences,
         List<String> restrictions,
-        String budgetRange,
+        BudgetRange budgetRange,
         List<String> cuisineTypes
 ) {
         public RegisterRequest {
                 if (preferences == null) preferences = List.of();
                 if (restrictions == null) restrictions = List.of();
-                if (budgetRange == null || budgetRange.isBlank()) budgetRange = "MEDIO";
+                if (budgetRange == null) budgetRange = BudgetRange.MEDIO;
                 if (cuisineTypes == null) cuisineTypes = List.of();
         }
 }

@@ -3,7 +3,7 @@ package com.foodv.backend.application.user;
 import com.foodv.backend.domain.model.user.User;
 import com.foodv.backend.domain.port.in.user.UpdateUserUseCase;
 import com.foodv.backend.domain.port.out.UserRepositoryPort;
-import jakarta.persistence.EntityNotFoundException;
+import com.foodv.backend.domain.exception.ResourceNotFoundException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -24,7 +24,7 @@ public class UpdateUserHandler implements UpdateUserUseCase {
         if (id == null) throw new IllegalArgumentException("Id requerido");
 
         User existing = userRepositoryPort.findById(id)
-                .orElseThrow(() -> new EntityNotFoundException("Usuario no encontrado"));
+                .orElseThrow(() -> new ResourceNotFoundException("Usuario no encontrado"));
 
         User user = User.builder()
                 .id(existing.getId())

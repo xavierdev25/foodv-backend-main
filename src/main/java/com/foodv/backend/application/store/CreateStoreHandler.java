@@ -7,7 +7,7 @@ import com.foodv.backend.domain.port.in.store.CreateStoreUseCase;
 import com.foodv.backend.domain.port.out.BusinessMetricsPort;
 import com.foodv.backend.domain.port.out.StoreRepositoryPort;
 import com.foodv.backend.domain.port.out.UserRepositoryPort;
-import jakarta.persistence.EntityNotFoundException;
+import com.foodv.backend.domain.exception.ResourceNotFoundException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -26,7 +26,7 @@ public class CreateStoreHandler implements CreateStoreUseCase {
     @Transactional
     public Store execute(CreateStoreCommand command) {
         User owner = userRepositoryPort.findById(command.ownerId())
-                .orElseThrow(() -> new EntityNotFoundException("Usuario no encontrado"));
+                .orElseThrow(() -> new ResourceNotFoundException("Usuario no encontrado"));
 
         if (owner.getRole() != UserRole.COMERCIO && owner.getRole() != UserRole.ADMIN) {
             throw new IllegalArgumentException("El usuario debe tener rol COMERCIO o ADMIN para crear una tienda");

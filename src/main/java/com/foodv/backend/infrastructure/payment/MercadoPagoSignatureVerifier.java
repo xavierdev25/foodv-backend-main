@@ -28,15 +28,8 @@ public class MercadoPagoSignatureVerifier {
     @Value("${MERCADOPAGO_WEBHOOK_SECRET:}")
     private String webhookSecret;
 
-    @Value("${MERCADOPAGO_WEBHOOK_VERIFY_SIGNATURE:true}")
-    private boolean verifySignature;
-
     public boolean isConfigured() {
         return webhookSecret != null && !webhookSecret.isBlank();
-    }
-
-    public boolean shouldVerify() {
-        return verifySignature;
     }
 
     public boolean verify(String xSignatureHeader, String xRequestId, String dataId) {

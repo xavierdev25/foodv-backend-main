@@ -103,7 +103,7 @@ Variables relacionadas:
 
 ```env
 AI_SERVICE_URL=http://localhost:8001
-AI_SERVICE_SECRET_KEY=change-me-in-production
+AI_SERVICE_SECRET_KEY=your-ai-service-secret-key
 ```
 
 `AI_SERVICE_SECRET_KEY` debe coincidir con `API_SECRET_KEY` configurado en `foodv-ai-service`.
@@ -204,10 +204,10 @@ Edita `.env` con tus credenciales reales.
 | `DB_PORT` | `5432` | Puerto PostgreSQL |
 | `DB_NAME` | `foodv_db` | Base de datos |
 | `DB_USERNAME` | `foodv_user` | Usuario PostgreSQL |
-| `DB_PASSWORD` | `foodv_secret` | Password PostgreSQL |
+| `DB_PASSWORD` | `your-db-password` | Password PostgreSQL |
 | `DB_POOL_SIZE` | `10` | Tamaño máximo del pool Hikari |
 | `PGADMIN_EMAIL` | `admin@foodv.com` | Email de pgAdmin; Docker lo mapea a `PGADMIN_DEFAULT_EMAIL` |
-| `PGADMIN_PASSWORD` | `admin123` | Password de pgAdmin; Docker lo mapea a `PGADMIN_DEFAULT_PASSWORD` |
+| `PGADMIN_PASSWORD` | `your-pgadmin-password` | Password de pgAdmin; Docker lo mapea a `PGADMIN_DEFAULT_PASSWORD` |
 | `PGADMIN_PORT` | `5050` | Puerto host para pgAdmin |
 | `REDIS_HOST` | `localhost` | Host Redis |
 | `REDIS_PORT` | `6380` | Puerto Redis en host local; dentro de Docker es `6379` |
@@ -228,7 +228,7 @@ Edita `.env` con tus credenciales reales.
 | `JPA_SHOW_SQL` | `false` | Mostrar SQL de Hibernate |
 | `HIBERNATE_LOG_LEVEL` | `WARN` | Nivel de logs Hibernate |
 | `AI_SERVICE_URL` | `http://localhost:8001` | URL del microservicio IA |
-| `AI_SERVICE_SECRET_KEY` | `change-me-in-production` | API key compartida con `foodv-ai-service` |
+| `AI_SERVICE_SECRET_KEY` | `your-ai-service-secret-key` | API key compartida con `foodv-ai-service` |
 | `FIREBASE_ENABLED` | `false` | Habilita/deshabilita FCM |
 | `FIREBASE_CREDENTIALS_PATH` | `` | Ruta del JSON de Firebase |
 | `FIREBASE_PROJECT_ID` | `` | Project ID de Firebase |
@@ -243,31 +243,31 @@ DB_HOST=localhost
 DB_PORT=5432
 DB_NAME=foodv_db
 DB_USERNAME=foodv_user
-DB_PASSWORD=foodv_secret
+DB_PASSWORD=your-db-password
 DB_POOL_SIZE=10
 PGADMIN_EMAIL=admin@foodv.com
-PGADMIN_PASSWORD=admin123
+PGADMIN_PASSWORD=your-pgadmin-password
 PGADMIN_PORT=5050
 REDIS_HOST=localhost
 REDIS_PORT=6380
-JWT_SECRET=your-256-bit-secret-key-here-min-32-chars
+JWT_SECRET=your-256-bit-secret-key-min-32-bytes
 JWT_EXPIRATION=86400000
 JWT_REFRESH_EXPIRATION=604800000
 JWT_ISSUER=foodv-backend
-MERCADOPAGO_ACCESS_TOKEN=TEST-placeholder
-MERCADOPAGO_PUBLIC_KEY=TEST-placeholder
-MERCADOPAGO_WEBHOOK_SECRET=placeholder
+MERCADOPAGO_ACCESS_TOKEN=your-mercadopago-access-token
+MERCADOPAGO_PUBLIC_KEY=your-mercadopago-public-key
+MERCADOPAGO_WEBHOOK_SECRET=your-mercadopago-webhook-secret
 MERCADOPAGO_NOTIFICATION_URL=http://localhost:8080/api/payments/webhook
 CLOUDINARY_CLOUD_NAME=placeholder
 CLOUDINARY_API_KEY=placeholder
-CLOUDINARY_API_SECRET=placeholder
+CLOUDINARY_API_SECRET=your-cloudinary-api-secret
 WS_ALLOWED_ORIGINS=http://localhost:3000,http://localhost:5173
 CORS_ALLOWED_ORIGINS=http://localhost:3000,http://localhost:5173
 LOG_LEVEL=DEBUG
 JPA_SHOW_SQL=false
 HIBERNATE_LOG_LEVEL=WARN
 AI_SERVICE_URL=http://localhost:8001
-AI_SERVICE_SECRET_KEY=change-me-in-production
+AI_SERVICE_SECRET_KEY=your-ai-service-secret-key
 FIREBASE_ENABLED=false
 FIREBASE_CREDENTIALS_PATH=
 FIREBASE_PROJECT_ID=
@@ -354,10 +354,10 @@ Si `docker-compose up -d` falla por variables faltantes, revisa que exista `.env
 ```env
 DB_NAME=foodv_db
 DB_USERNAME=foodv_user
-DB_PASSWORD=foodv_secret
+DB_PASSWORD=your-db-password
 PGADMIN_EMAIL=admin@foodv.com
-PGADMIN_PASSWORD=admin123
-AI_SERVICE_SECRET_KEY=change-me-in-production
+PGADMIN_PASSWORD=your-pgadmin-password
+AI_SERVICE_SECRET_KEY=your-ai-service-secret-key
 ```
 
 ### Redis no conecta

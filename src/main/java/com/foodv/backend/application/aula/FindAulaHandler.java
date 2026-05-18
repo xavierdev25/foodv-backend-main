@@ -3,7 +3,7 @@ package com.foodv.backend.application.aula;
 import com.foodv.backend.domain.model.aula.Aula;
 import com.foodv.backend.domain.port.in.aula.FindAulaUseCase;
 import com.foodv.backend.domain.port.out.AulaRepositoryPort;
-import jakarta.persistence.EntityNotFoundException;
+import com.foodv.backend.domain.exception.ResourceNotFoundException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
@@ -18,7 +18,7 @@ public class FindAulaHandler implements FindAulaUseCase {
     @Override
     public Aula findById(Long id) {
         return aulaRepositoryPort.findById(id)
-                .orElseThrow(() -> new EntityNotFoundException("Aula no encontrada"));
+                .orElseThrow(() -> new ResourceNotFoundException("Aula no encontrada"));
     }
 
     @Override
